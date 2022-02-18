@@ -149,9 +149,11 @@ section general_totient
 /-- ## A generalised totient function -/
 
 -----------------------------------
+
 -- This is in `PR #12104`
 lemma filter_eq_empty_iff {α : Type*} (s : finset α) (p : α → Prop) [decidable_pred p] :
    (s.filter p = ∅) ↔ ∀ x ∈ s, ¬ p x := sorry
+
 -----------------------------------
 
 /-- For any `d : ℕ`, `n.gen_totient d` is the number of positive natural numbers `1 ≤ k ≤ n` with
@@ -167,7 +169,50 @@ begin
   simp [gen_totient, hn],
 end
 
--- #eval gen_totient 1 1
+/-- In the case where `n ≠ d` it is sometimes convenient to express `gen_totient n d`
+as a filter on `range n` instead of on `Icc 1 n`. -/
+lemma gen_totient_eq_filter_range_of_ne {n d : ℕ} (hnd : n ≠ d) :
+  gen_totient n d = ((range n).filter (λ k, n.gcd k = d)).card :=
+begin
+  unfold gen_totient,
+  refine card_congr (λ k _, k) _ (by simp) _,
+  { simp only [mem_filter, mem_Icc, mem_range, and_imp],
+    intros a _ ha2 ha3,
+    refine ⟨lt_of_le_of_ne ha2 _, ha3⟩,
+    { intros H, rw [H, gcd_self n] at ha3, exact hnd ha3 } },
+  { simp only [mem_filter, mem_range, mem_Icc, exists_prop, exists_eq_right, and_imp],
+    intros b hb1 hb2,
+    refine ⟨⟨_, le_of_lt hb1⟩, hb2⟩,
+    { rw [succ_le_iff, zero_lt_iff],
+      intros H,
+      rw [H, gcd_zero_right n] at hb2,
+      apply hnd hb2 } },
+end
+
+example (n : ℕ) (hn : n ≠ 0) : ((range n).filter (λ k, n.gcd k = n)).card = 1 :=
+begin
+  simp,
+  -- rw filter_eq_empty_iff,
+  -- intros x hx H,
+  -- rcases eq_or_ne x 0 with rfl | hx0, {
+  --   simp at *,
+  --   sorry },
+  -- simp at hx,
+  -- have : n ∣ x, { rw ←H, exact gcd_dvd_right n x },
+
+  sorry,
+end
+
+lemma gen_totient_self {n : ℕ} (hn : n ≠ 0) : gen_totient n n = 1 :=
+begin
+  unfold gen_totient,
+  -- have := card_union_eq,
+  sorry,
+end
+
+-- #eval gcd 12 12
+-- #eval gen_totient 12 12
+-- #eval Icc 1 0
 -- #eval totient 3
 -- #eval range 3
 -- #eval Icc 1 3
@@ -178,22 +223,22 @@ end
 lemma gen_totient_one (n : ℕ) : n.gen_totient 1 = n.totient :=
 begin
   by_cases hn1 : n = 1, { simp [hn1, gen_totient] },
-  simp only [gen_totient, totient],
-  suffices : (filter n.coprime (Icc 1 n)) = (filter n.coprime (range n)), { rw this },
-  ext,
-  simp only [mem_filter, mem_range, mem_Icc, and.congr_left_iff],
-  intros han,
-  split,
-  { intros h,
-    apply lt_of_le_of_ne h.2,
-    rintros rfl,
-    exact hn1 ((coprime_self a).mp han) },
-  { intros h,
-    refine ⟨one_le_iff_ne_zero.mpr _, le_of_lt h⟩,
-    rintros rfl,
-    exact hn1 ((coprime_zero_right n).mp han) },
+  rw gen_totient_eq_filter_range_of_ne hn1,
+  simp only [totient],
+  -- suffices : (filter n.coprime (Icc 1 n)) = (filter n.coprime (range n)), { rw this },
+  -- ext,
+  -- simp only [mem_filter, mem_range, mem_Icc, and.congr_left_iff],
+  -- intros han,
+  -- split,
+  -- { intros h,
+  --   apply lt_of_le_of_ne h.2,
+  --   rintros rfl,
+  --   exact hn1 ((coprime_self a).mp han) },
+  -- { intros h,
+  --   refine ⟨one_le_iff_ne_zero.mpr _, le_of_lt h⟩,
+  --   rintros rfl,
+  --   exact hn1 ((coprime_zero_right n).mp han) },
 end
-
 
 lemma gen_totient_eq_zero_of_not_dvd {n d : ℕ} (hnd : ¬ d ∣ n) : n.gen_totient d = 0 :=
 begin
@@ -203,10 +248,124 @@ begin
   cases hnd (gcd_dvd_left n x),
 end
 
+-- Put this in `data/nat/basic`
+lemma div_by_eq_iff_eq_of_dvd_dvd {a b d : ℕ} (hda : d ∣ a) (hdb : d ∣ b) : a / d = b / d ↔ a = b :=
+begin
+  split,
+  { intros h, rw [←nat.mul_div_cancel' hda, ←nat.mul_div_cancel' hdb, h] },
+  { apply congr_arg },
+end
+
+lemma div_by_lt_iff_lt_of_dvd_dvd {a b d : ℕ} (hda : d ∣ a) (hdb : d ∣ b) :
+  a / d < b / d ↔ a < b :=
+begin
+  rcases eq_or_ne d 0 with rfl | hd0, { simp at *, rw [hda, hdb] },
+  rcases eq_or_ne a 0 with rfl | ha0, {
+    simp at *,
+
+
+    sorry },
+  split,
+  {
+    intros h,
+    sorry},
+  {
+    intros h,
+
+    -- library_search,
+
+    sorry},
+end
+
+
+
+
+example
+(n d : ℕ)
+(hnd : d ∣ n)
+(hn0 : n ≠ 0)
+(hd0 : d ≠ 0)
+(hnd_ne : n ≠ d)
+(b : ℕ)
+(hb1 : b < n / d)
+-- (hb2 : (n / d).coprime b)
+: b * d < n
+:=
+begin
+
+
+  sorry,
+end
+
 lemma gen_totient_dvd_eq_totient_div {n d : ℕ} (hnd : d ∣ n) : n.gen_totient d = φ (n/d) :=
 begin
-  simp only [gen_totient, totient],
-  sorry,
+  rcases eq_or_ne n 0 with rfl | hn0, { simp at *, apply zero_gen_totient },
+  rcases eq_or_ne d 0 with rfl | hd0, { simp only [nat.div_zero, totient_zero, gen_totient_zero] },
+  rcases eq_or_ne n d with rfl | hnd_ne,
+  { simp only [gen_totient_self hd0, nat.div_self (zero_lt_iff.mpr hd0), totient_one] },
+
+  rw gen_totient_eq_filter_range_of_ne hnd_ne,
+
+  simp only [totient],
+  apply card_congr (λ k _, k/d),
+  {
+    simp only [mem_filter, mem_range, and_imp],
+    intros k hkn hk1,
+    have hdk : d ∣ k, { rw ←hk1, exact gcd_dvd_right n k },
+    split,
+    { exact (@div_by_lt_iff_lt_of_dvd_dvd k n d hdk hnd).mpr hkn },
+    {
+      unfold coprime,
+      rw gcd_div hnd hdk,
+      rw hk1,
+      refine @nat.div_self d _,
+      exact zero_lt_iff.mpr hd0,
+    },
+  },
+  { simp,
+    intros a b h1 h2 h3 h4 h5 ,
+    apply (div_by_eq_iff_eq_of_dvd_dvd _ _).mp h5,
+    { rw ←h2, exact gcd_dvd_right n a },
+    { rw ←h4, exact gcd_dvd_right n b },
+  },
+  {
+    simp,
+    intros b hb1 hb2,
+    use b*d,
+    split,
+    { split,
+      {
+        sorry},
+      {
+        rw coprime.gcd_mul_left_cancel_right,
+        { exact gcd_eq_right hnd },
+        {
+          rw coprime_comm,
+
+
+
+          sorry },
+      },
+      },
+      {
+        rw mul_comm,
+        apply mul_div_right,
+        exact zero_lt_iff.mpr hd0,
+      },
+
+
+     },
+-- For any divisor d of n, the elements counted by αd(n) are
+-- the positive integers 1 ≤ k ≤ n with gcd(k,n) = d.
+
+-- We can write any such k as qd for some 1 ≤ q ≤ n/d.
+
+-- Each of these values of q gives a multiple of d with gcd(qd, n) = d
+-- if and only if the product qd has no further prime powers in common with n,
+-- i.e. iff gcd(q, n/d) = 1.
+
+-- So there is a 1-1 correspondence between the elements counted by αd(n)
+-- and the integers q satisfying 1 ≤ q ≤ n/d with gcd(q, n/d) = 1.
 end
 #exit
 end general_totient
