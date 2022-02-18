@@ -195,18 +195,12 @@ begin
 end
 
 
-lemma gen_totient_not_dvd_eq_zero {n d : ℕ} (hnd : ¬ d ∣ n) : n.gen_totient d = 0 :=
+lemma gen_totient_eq_zero_of_not_dvd {n d : ℕ} (hnd : ¬ d ∣ n) : n.gen_totient d = 0 :=
 begin
-  unfold gen_totient,
-  rw card_eq_zero,
-  rw filter_eq_empty_iff,
-  intros x hx,
-  simp at hx,
-  cases hx,
-  intros H,
-  apply hnd,
-  rw ←H,
-  exact gcd_dvd_left n x,
+  simp only [gen_totient, card_eq_zero, filter_eq_empty_iff],
+  intros x hx H,
+  rw ←H at hnd,
+  cases hnd (gcd_dvd_left n x),
 end
 
 lemma gen_totient_dvd_eq_totient_div {n d : ℕ} (hnd : d ∣ n) : n.gen_totient d = φ (n/d) :=
