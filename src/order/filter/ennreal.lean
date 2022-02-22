@@ -48,7 +48,7 @@ begin
       (eventually_of_forall (λ _, le_of_eq h)),
     exact hu_zero.mono (λ x hx, le_antisymm hx (zero_le _)), },
   { rw limsup_congr h,
-    simp_rw [pi.zero_apply, ←ennreal.bot_eq_zero, limsup_const_bot] },
+    simp_rw [← pi.const_zero, ←ennreal.bot_eq_zero, limsup_const_bot] },
 end
 
 lemma limsup_const_mul_of_ne_top {u : α → ℝ≥0∞} {a : ℝ≥0∞} (ha_top : a ≠ ⊤) :
@@ -81,7 +81,7 @@ begin
     { refine hu.mono (λ x hx, _),
       rw pi.zero_apply at hx,
       simp [hx], },
-    simp only [limsup_congr hu, limsup_congr hau, pi.zero_apply, ← bot_eq_zero, limsup_const_bot],
+    simp only [limsup_congr hu, limsup_congr hau, ← pi.const_zero, ← bot_eq_zero, limsup_const_bot],
     simp, },
   { simp_rw [ha_top, top_mul],
     have hu_mul : ∃ᶠ (x : α) in f, ⊤ ≤ ite (u x = 0) (0 : ℝ≥0∞) ⊤,

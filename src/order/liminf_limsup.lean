@@ -322,7 +322,7 @@ theorem Liminf_principal {s : set α} (h : bdd_below s) (hs : s.nonempty) :
 @Limsup_principal (order_dual α) _ s h hs
 
 lemma limsup_congr {α : Type*} [conditionally_complete_lattice β] {f : filter α} {u v : α → β}
-  (h : ∀ᶠ a in f, u a = v a) : limsup f u = limsup f v :=
+  (h : u =ᶠ[f] v) : limsup f u = limsup f v :=
 begin
   rw limsup_eq,
   congr' with b,
@@ -330,7 +330,7 @@ begin
 end
 
 lemma liminf_congr {α : Type*} [conditionally_complete_lattice β] {f : filter α} {u v : α → β}
-  (h : ∀ᶠ a in f, u a = v a) : liminf f u = liminf f v :=
+  (h : u =ᶠ[f] v) : liminf f u = liminf f v :=
 @limsup_congr (order_dual β) _ _ _ _ _ h
 
 lemma limsup_const {α : Type*} [conditionally_complete_lattice β] {f : filter α} [ne_bot f]
