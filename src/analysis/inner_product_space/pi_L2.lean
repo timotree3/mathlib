@@ -401,3 +401,17 @@ lemma inner_matrix_col_col (A B : matrix (fin n) (fin m) 𝕜) (i j : (fin m)) :
   ⟪Aᵀ i, Bᵀ j⟫ₙ = (Aᴴ ⬝ B) i j := rfl
 
 end matrix
+
+
+variables (A : ι → submodule 𝕜 E)
+
+/-- Given an internal direct sum decomposition of a module `M`, and an orthonormal basis for each
+of the components of the direct sum, the disjoint union of these orthonormal bases is an
+orthonormal basis for `M`. -/
+noncomputable def submodule_is_internal.collected_orthonormal_basis
+  [decidable_eq ι] (h : direct_sum.submodule_is_internal A) {α : ι → Type*}
+  (v : Π i, orthonormal_basis (α i) 𝕜 (A i)) :
+  basis (Σ i, α i) 𝕜 E :=
+{ repr := (linear_equiv.of_bijective _ h.injective h.surjective).symm ≪≫ₗ
+      (dfinsupp.map_range.linear_equiv (λ i, (v i).repr)) ≪≫ₗ
+      (sigma_finsupp_lequiv_dfinsupp R).symm }
