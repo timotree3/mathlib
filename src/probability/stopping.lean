@@ -199,6 +199,7 @@ instance sigma_finite_of_sigma_finite_filtration [preorder ι] (μ : measure α)
   sigma_finite (μ.trim (f.le i)) :=
 by apply hf.sigma_finite -- can't exact here
 
+section adapted
 variable [measurable_space β]
 
 /-- A sequence of functions `u` is adapted to a filtration `f` if for all `i`,
@@ -228,9 +229,10 @@ variable (β)
 lemma adapted_zero [preorder ι] [has_zero β] (f : filtration ι m) : adapted f (0 : ι → α → β) :=
 λ i, @measurable_zero β α (f i) _ _
 
-variable {β}
+end adapted
 
 namespace filtration
+variable [measurable_space β]
 
 /-- Given a sequence of functions, the natural filtration is the smallest sequence
 of σ-algebras such that that sequence of functions is measurable with respect to
