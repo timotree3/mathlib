@@ -273,6 +273,10 @@ lemma right_continuous_filtration_def (f : filtration ι m) (i : ι) :
   right_continuous_filtration f i = if is_max i then m else (⨅ j > i, f j) :=
 rfl
 
+lemma right_continuous_filtration_eq [no_max_order ι] (f : filtration ι m) (i : ι) :
+  right_continuous_filtration f i = ⨅ j > i, f j :=
+by simp only [right_continuous_filtration_def, not_is_max i, if_false]
+
 lemma le_right_continuous_filtration (f : filtration ι m) :
   f ≤ right_continuous_filtration f :=
 begin
@@ -283,8 +287,8 @@ begin
     exact le_binfi (λ j hij, f.mono hij.lt.le), },
 end
 
-/-- Note the `densely_ordered ι` assumption. This is not true in general. If `ι = {0,1}` with
-`0 ≤ 1` then `right_continuous_filtration f 0 = f 1` and `right_continuous_filtration f 1 = m`, and
+/-- Note the `densely_ordered ι` assumption. This is not true in general. If `ι = {0, 1}` with
+`0 < 1` then `right_continuous_filtration f 0 = f 1` and `right_continuous_filtration f 1 = m`, and
 then `right_continuous_filtration (right_continuous_filtration f) 0 = m`. -/
 lemma right_continuous_filtration_idempotent [densely_ordered ι] (f : filtration ι m) :
   right_continuous_filtration (right_continuous_filtration f) = right_continuous_filtration f :=
