@@ -66,6 +66,14 @@ lemma eventually_eq.comp_tendsto {f' : α → β} (H : f =ᶠ[l] f') {g : γ →
   f ∘ g =ᶠ[lc] f' ∘ g :=
 hg.eventually H
 
+/-- Setoid used to define the space of dependent germs. -/
+def dgerm_setoid (l : filter α) (β : α → Type*) : setoid (Π a, β a) :=
+{ r := eventually_eq l,
+  iseqv := ⟨eventually_eq.refl _, λ _ _, eventually_eq.symm, λ _ _ _, eventually_eq.trans⟩ }
+
+/-- The space of germs of dependent functions `Π (a : α), β a` at a filter `l`. -/
+def dgerm (l : filter α) (β : α → Type*) : Type* := quotient (dgerm_setoid l β)
+
 /-- Setoid used to define the space of germs. -/
 def germ_setoid (l : filter α) (β : Type*) : setoid (α → β) :=
 { r := eventually_eq l,
@@ -75,6 +83,8 @@ def germ_setoid (l : filter α) (β : Type*) : setoid (α → β) :=
 def germ (l : filter α) (β : Type*) : Type* := quotient (germ_setoid l β)
 
 namespace germ
+
+instance {β : α → Type*} : has_coe_t (Π a, β a) (dgerm l β) := ⟨quotient.mk'⟩
 
 instance : has_coe_t (α → β) (germ l β) := ⟨quotient.mk'⟩
 
@@ -230,6 +240,9 @@ eventually_of_forall $ λ _, h
 @[simp] lemma lift_rel_const_iff [ne_bot l] {r : β → γ → Prop} {x : β} {y : γ} :
   lift_rel r (↑x : germ l β) ↑y ↔ r x y :=
 @eventually_const _ _ _ (r x y)
+
+instance {β : α → Type*} [Π a, inhabited (β a)] : inhabited (dgerm l β) :=
+⟨(↑(λ a, (default : β a)) : dgerm l β)⟩
 
 instance [inhabited β] : inhabited (germ l β) := ⟨↑(default : β)⟩
 

@@ -1201,9 +1201,9 @@ by simp [filter.frequently, -not_eventually, not_forall]
 ### Relation “eventually equal”
 -/
 
-/-- Two functions `f` and `g` are *eventually equal* along a filter `l` if the set of `x` such that
-`f x = g x` belongs to `l`. -/
-def eventually_eq (l : filter α) (f g : α → β) : Prop := ∀ᶠ x in l, f x = g x
+/-- Two (dependent) functions `f` and `g` are *eventually equal* along a filter `l` if the set of
+  `x` such that `f x = g x` belongs to `l`. -/
+def eventually_eq {β : α → Type*} (l : filter α) (f g : Π a, β a) : Prop := ∀ᶠ x in l, f x = g x
 
 notation f ` =ᶠ[`:50 l:50 `] `:0 g:50 := eventually_eq l f g
 
@@ -1211,7 +1211,8 @@ lemma eventually_eq.eventually {l : filter α} {f g : α → β} (h : f =ᶠ[l] 
   ∀ᶠ x in l, f x = g x :=
 h
 
-lemma eventually_eq.rw {l : filter α} {f g : α → β} (h : f =ᶠ[l] g) (p : α → β → Prop)
+lemma eventually_eq.rw {β : α → Type*} {l : filter α} {f g : Π a, β a} (h : f =ᶠ[l] g)
+  (p : Π i, β i → Prop)
   (hf : ∀ᶠ x in l, p x (f x)) :
   ∀ᶠ x in l, p x (g x) :=
 hf.congr $ h.mono $ λ x hx, hx ▸ iff.rfl
@@ -1241,17 +1242,17 @@ lemma eventually_eq.filter_mono {l l' : filter α} {f g : α → β} (h₁ : f =
   f =ᶠ[l'] g :=
 h₂ h₁
 
-@[refl] lemma eventually_eq.refl (l : filter α) (f : α → β) :
+@[refl] lemma eventually_eq.refl {β : α → Type*} (l : filter α) (f : Π a, β a) :
   f =ᶠ[l] f :=
 eventually_of_forall $ λ x, rfl
 
 lemma eventually_eq.rfl {l : filter α} {f : α → β} : f =ᶠ[l] f := eventually_eq.refl l f
 
-@[symm] lemma eventually_eq.symm {f g : α → β} {l : filter α} (H : f =ᶠ[l] g) :
+@[symm] lemma eventually_eq.symm {β : α → Type*} {f g : Π a, β a} {l : filter α} (H : f =ᶠ[l] g) :
   g =ᶠ[l] f :=
 H.mono $ λ _, eq.symm
 
-@[trans] lemma eventually_eq.trans {f g h : α → β} {l : filter α}
+@[trans] lemma eventually_eq.trans {β : α → Type*} {f g h : Π a, β a} {l : filter α}
   (H₁ : f =ᶠ[l] g) (H₂ : g =ᶠ[l] h) :
   f =ᶠ[l] h :=
 H₂.rw (λ x y, f x = y) H₁
