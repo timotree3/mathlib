@@ -244,9 +244,6 @@ lemma adapted_natural [preorder ι] {u : ι → α → β} (hum : ∀ i, measura
   adapted (natural u hum) u :=
 λ i, measurable.le (le_bsupr_of_le i (le_refl i) le_rfl) (λ s hs, ⟨s, hs, rfl⟩)
 
-lemma is_max.mono [preorder ι] {i j : ι} (hi : is_max i) (hij : i ≤ j) : is_max j :=
-λ k hjk, (hi (hij.trans hjk)).trans hij
-
 section right_continuous_filtration
 variables [partial_order ι]
 
@@ -259,7 +256,7 @@ def right_continuous_filtration (f : filtration ι m) : filtration ι m :=
   mono' := λ i j hij,
   begin
     by_cases hi : is_max i,
-    { have hj : is_max j, from λ k hk, (hi (hij.trans hk)).trans hij,
+    { have hj : is_max j, from hi.mono hij,
       simp only [hi, hj, gt_iff_lt, if_true, f.mono hij], },
     { by_cases hj : is_max j,
       { simp only [hi, hj, if_true, if_false, gt_iff_lt],
