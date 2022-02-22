@@ -59,17 +59,22 @@ protected lemma le (f : filtration ι m) (i : ι) : f i ≤ m := f.le' i
 @[ext] protected lemma ext {f g : filtration ι m} (h : (f : ι → measurable_space α) = g) : f = g :=
 by { cases f, cases g, simp only, exact h, }
 
+variable (ι)
 /-- The constant filtration which is equal to `m` for all `i : ι`. -/
 def const (m' : measurable_space α) (hm' : m' ≤ m) : filtration ι m :=
 ⟨λ _, m', monotone_const, λ _, hm'⟩
+variable {ι}
 
-instance : inhabited (filtration ι m) := ⟨const m le_rfl⟩
+@[simp]
+lemma const_apply {m' : measurable_space α} {hm' : m' ≤ m} (i : ι) : const ι m' hm' i = m' := rfl
+
+instance : inhabited (filtration ι m) := ⟨const ι m le_rfl⟩
 
 instance : has_le (filtration ι m) := ⟨λ f g, ∀ i, f i ≤ g i⟩
 
-instance : has_bot (filtration ι m) := ⟨const ⊥ bot_le⟩
+instance : has_bot (filtration ι m) := ⟨const ι ⊥ bot_le⟩
 
-instance : has_top (filtration ι m) := ⟨const m le_rfl⟩
+instance : has_top (filtration ι m) := ⟨const ι m le_rfl⟩
 
 instance : has_sup (filtration ι m) := ⟨λ f g,
 { seq   := λ i, f i ⊔ g i,
@@ -227,69 +232,82 @@ variable {β}
 
 namespace filtration
 
-variables [preorder ι]
-
 /-- Given a sequence of functions, the natural filtration is the smallest sequence
 of σ-algebras such that that sequence of functions is measurable with respect to
 the filtration. -/
-def natural (u : ι → α → β) (hum : ∀ i, measurable (u i)) : filtration ι m :=
+def natural [preorder ι] (u : ι → α → β) (hum : ∀ i, measurable (u i)) : filtration ι m :=
 { seq   := λ i, ⨆ j ≤ i, measurable_space.comap (u j) infer_instance,
   mono' := λ i j hij, bsupr_le_bsupr' $ λ k hk, le_trans hk hij,
   le'   := λ i, bsupr_le (λ j hj s hs, let ⟨t, ht, ht'⟩ := hs in ht' ▸ hum j ht) }
 
-lemma adapted_natural {u : ι → α → β} (hum : ∀ i, measurable[m] (u i)) :
+lemma adapted_natural [preorder ι] {u : ι → α → β} (hum : ∀ i, measurable[m] (u i)) :
   adapted (natural u hum) u :=
 λ i, measurable.le (le_bsupr_of_le i (le_refl i) le_rfl) (λ s hs, ⟨s, hs, rfl⟩)
 
-lemma is_max.mono {i j : ι} (hi : is_max i) (hij : i ≤ j) : is_max j :=
+lemma is_max.mono [preorder ι] {i j : ι} (hi : is_max i) (hij : i ≤ j) : is_max j :=
 λ k hjk, (hi (hij.trans hjk)).trans hij
 
-/-- TODO -/
+section right_continuous_filtration
+variables [partial_order ι]
+
+/-- TODO
+The choice of the value `f i` if `i` is a maximal element is such that `right_continuous_filtration`
+sends a constant filtration to itself. -/
 noncomputable
 def right_continuous_filtration (f : filtration ι m) : filtration ι m :=
-{ seq   := λ i, if is_max i then m else (⨅ j > i, f j),
+{ seq   := λ i, if is_max i then (f i) else (⨅ j > i, f j),
   mono' := λ i j hij,
   begin
     by_cases hi : is_max i,
     { have hj : is_max j, from λ k hk, (hi (hij.trans hk)).trans hij,
-      simp only [hi, hj, gt_iff_lt, if_true, le_rfl], },
+      simp only [hi, hj, gt_iff_lt, if_true, f.mono hij], },
     { by_cases hj : is_max j,
       { simp only [hi, hj, if_true, if_false, gt_iff_lt],
-        obtain ⟨k, hk⟩ := not_is_max_iff.mp hi,
-        exact (binfi_le k hk).trans (f.le k), },
+        have hi_lt_j : i < j, from lt_of_le_of_ne hij (λ hi_eq_j, hi (hi_eq_j.symm ▸ hj)),
+        exact binfi_le j hi_lt_j, },
       { simp only [hi, hj, if_false],
         exact infi_le_infi_of_subset (λ k hk_lt_j, hij.trans_lt hk_lt_j), }, },
   end,
   le'   := λ i,
   begin
     by_cases hi : is_max i,
-    { simp only [hi, if_true, le_rfl], },
+    { simp only [hi, if_true, f.le i], },
     { simp only [hi, if_false],
       obtain ⟨k, hk⟩ := not_is_max_iff.mp hi,
       exact (binfi_le k hk).trans (f.le k), },
   end }
 
 lemma right_continuous_filtration_def (f : filtration ι m) (i : ι) :
-  right_continuous_filtration f i = if is_max i then m else (⨅ j > i, f j) :=
-rfl
+  right_continuous_filtration f i = if is_max i then (f i) else (⨅ j > i, f j) := rfl
 
-lemma right_continuous_filtration_eq [no_max_order ι] (f : filtration ι m) (i : ι) :
+lemma right_continuous_filtration_eq_infi [no_max_order ι] (f : filtration ι m) (i : ι) :
   right_continuous_filtration f i = ⨅ j > i, f j :=
 by simp only [right_continuous_filtration_def, not_is_max i, if_false]
 
-lemma le_right_continuous_filtration (f : filtration ι m) :
-  f ≤ right_continuous_filtration f :=
+lemma right_continuous_filtration_succ_order [succ_order ι]
+  (f : filtration ι m) (i : ι) (hi : ¬ is_max i) :
+  right_continuous_filtration f i = f (succ_order.succ i) :=
+begin
+  simp_rw [right_continuous_filtration_def, hi, if_false],
+  refine le_antisymm (binfi_le _ (succ_order.lt_succ_of_not_is_max hi))
+    (le_binfi (λ j hi_lt_j, f.mono _)),
+  rw succ_order.succ_le_iff_of_not_is_max hi,
+  exact hi_lt_j,
+end
+
+lemma le_right_continuous_filtration (f : filtration ι m) : f ≤ right_continuous_filtration f :=
 begin
   intro i,
   by_cases hi : is_max i,
-  { simp only [right_continuous_filtration_def f i, hi, if_true, f.le i], },
+  { simp only [right_continuous_filtration_def f i, hi, if_true, le_rfl], },
   { simp only [right_continuous_filtration_def f i, hi, if_false],
     exact le_binfi (λ j hij, f.mono hij.lt.le), },
 end
 
-/-- Note the `densely_ordered ι` assumption. This is not true in general. If `ι = {0, 1}` with
-`0 < 1` then `right_continuous_filtration f 0 = f 1` and `right_continuous_filtration f 1 = m`, and
-then `right_continuous_filtration (right_continuous_filtration f) 0 = m`. -/
+/-- `right_continuous_filtration` is idempotent.
+Note the `densely_ordered ι` assumption: this is not true in general. If `ι = {0, 1, 2}` with
+`0 < 1 < 2` then `right_continuous_filtration f 0 = f 1`, `right_continuous_filtration f 1 = f 2`,
+and then `right_continuous_filtration (right_continuous_filtration f) 0 = f 2`. -/
 lemma right_continuous_filtration_idempotent [densely_ordered ι] (f : filtration ι m) :
   right_continuous_filtration (right_continuous_filtration f) = right_continuous_filtration f :=
 begin
@@ -305,12 +323,27 @@ begin
   exact binfi_le j hn_lt_j,
 end
 
-/-- TODO -/
+/-- A filtration is right continuous if `f = right_continuous_filtration f`. -/
 def is_right_continuous (f : filtration ι m) : Prop := f = right_continuous_filtration f
+
+lemma is_right_continuous_const {m0 : measurable_space α} (hm : m0 ≤ m) :
+  is_right_continuous (const ι m0 hm) :=
+begin
+  ext1,
+  ext1 i,
+  by_cases hi : is_max i,
+  { simp_rw [right_continuous_filtration_def, const_apply, hi, if_true], },
+  simp_rw [right_continuous_filtration_def, const_apply, hi, if_false],
+  refine le_antisymm (le_binfi (λ j hi_lt_j, le_rfl)) _,
+  obtain ⟨k, hi_lt_k⟩ := not_is_max_iff.mp hi,
+  exact binfi_le k hi_lt_k,
+end
 
 lemma is_right_continuous_right_continuous_filtration [densely_ordered ι] (f : filtration ι m) :
   is_right_continuous (right_continuous_filtration f) :=
 (right_continuous_filtration_idempotent f).symm
+
+end right_continuous_filtration
 
 end filtration
 
@@ -410,6 +443,7 @@ end
 
 variables [topological_space ι] [order_topology ι] [first_countable_topology ι]
 
+/-- Auxiliary lemma for `is_stopping_time.measurable_set_lt`. -/
 lemma is_stopping_time.measurable_set_lt_of_is_lub
   (hτ : is_stopping_time f τ) (i : ι) (h_lub : is_lub (set.Iio i) i) :
   measurable_set[f i] {x | τ x < i} :=
