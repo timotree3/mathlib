@@ -283,25 +283,28 @@ begin
     exact le_binfi (λ j hij, f.mono hij.lt.le), },
 end
 
-lemma right_continuous_filtration_idempotent (f : filtration ι m) :
+/-- Note the `densely_ordered ι` assumption. This is not true in general. If `ι = {0,1}` with
+`0 ≤ 1` then `right_continuous_filtration f 0 = f 1` and `right_continuous_filtration f 1 = m`, and
+then `right_continuous_filtration (right_continuous_filtration f) 0 = m`. -/
+lemma right_continuous_filtration_idempotent [densely_ordered ι] (f : filtration ι m) :
   right_continuous_filtration (right_continuous_filtration f) = right_continuous_filtration f :=
 begin
   refine le_antisymm (λ i, _) (le_right_continuous_filtration _),
   by_cases hi : is_max i,
   { simp only [right_continuous_filtration_def, hi, if_true, le_rfl], },
-  simp only [right_continuous_filtration_def, hi, if_true],
-  obtain ⟨k, hk_lt_i⟩ := not_is_max_iff.mp hi,
-  refine (binfi_le k hk_lt_i).trans _,
-  by_cases hk : is_max k,
-  { simp only [hk, if_true, if_false], sorry, },
-  { simp only [hk, if_false],
-    sorry, },
+  simp only [right_continuous_filtration_def, hi, if_false],
+  refine le_binfi (λ j hi_lt_j, _),
+  obtain ⟨n, hi_lt_n, hn_lt_j⟩ : ∃ n, i < n ∧ n < j, from exists_between hi_lt_j,
+  refine (binfi_le n hi_lt_n).trans _,
+  have h_not_max : ¬ is_max n, from not_is_max_iff.mpr ⟨j, hn_lt_j⟩,
+  simp only [h_not_max, if_false],
+  exact binfi_le j hn_lt_j,
 end
 
 /-- TODO -/
 def is_right_continuous (f : filtration ι m) : Prop := f = right_continuous_filtration f
 
-lemma is_right_continuous_right_continuous_filtration (f : filtration ι m) :
+lemma is_right_continuous_right_continuous_filtration [densely_ordered ι] (f : filtration ι m) :
   is_right_continuous (right_continuous_filtration f) :=
 (right_continuous_filtration_idempotent f).symm
 
