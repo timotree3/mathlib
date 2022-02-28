@@ -37,6 +37,8 @@ open_locale classical measure_theory nnreal ennreal topological_space big_operat
 
 namespace measure_theory
 
+/-! ### Filtrations -/
+
 /-- A `filtration` on measurable space `α` with σ-algebra `m` is a monotone
 sequence of sub-σ-algebras of `m`. -/
 structure filtration {α : Type*} (ι : Type*) [preorder ι] (m : measurable_space α) :=
@@ -345,6 +347,8 @@ lemma is_right_continuous_right_continuous_filtration [densely_ordered ι] (f : 
 end right_continuous_filtration
 
 end filtration
+
+/-! ### Stopping times -/
 
 /-- A stopping time with respect to some filtration `f` is a function
 `τ` such that for all `i`, the preimage of `{j | j ≤ i}` along `τ` is measurable
@@ -673,6 +677,8 @@ end linear_order
 end is_stopping_time
 
 section linear_order
+
+/-! ## Stopped value and stopped process -/
 
 /-- Given a map `u : ι → α → E`, its stopped value with respect to the stopping
 time `τ` is the map `x ↦ u (τ x) x`. -/
