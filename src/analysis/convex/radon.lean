@@ -28,8 +28,8 @@ begin
   exact hx₂.2 hx₁.2
 end
 
-lemma radon_lemma {ι} {p : ι → E} (h : ¬ affine_independent 𝕜 p) :
-  ∃ (M₁ ⊆ set.range p) (M₂ ⊆ set.range p), M₁ ∩ M₂ = ∅ ∧ convex_hull 𝕜 M₁ ∩ convex_hull 𝕜 M₂ ≠ ∅ :=
+lemma radon_lemma {ι} {p : ι → E} (hp : function.injective p) (h : ¬ affine_independent 𝕜 p) :
+  ∃ (M₁ M₂ ⊆ set.range p), disjoint M₁ M₂ ∧ ¬ disjoint (convex_hull 𝕜 M₁) (convex_hull 𝕜 M₂) :=
 begin
   rw affine_independent_def at h,
   push_neg at h,
@@ -37,16 +37,16 @@ begin
   haveI : decidable_pred (λ i : ι, f i > 0) := by { classical, apply_instance },
   let I₁ := M.filter (λ i : ι, f i > 0),
   let I₂ := M.filter (λ i : ι, ¬ f i > 0),
-  let M₁ := p '' I₁,
-  let M₂ := p '' I₂,
-  use M₁,
-  use set.image_subset_range p I₁,
-  use M₂,
-  use set.image_subset_range p I₂,
-  let k := ∑ x in I₁, f x,
-  use ∑ x in I₁, (f x / k) • x,
-  split, {
+  refine ⟨p '' I₁, set.image_subset_range p I₁, p '' I₂, set.image_subset_range p I₂, _, _⟩,
+  { rw set.disjoint_iff_forall_ne,
+    rintros _ ⟨i, hi, rfl⟩ _ ⟨j, hj, rfl⟩ h,
+    rw hp h at hi,
+    exact (finset.mem_filter.1 hj).2 (finset.mem_filter.1 hi).2 },
+  { rw set.not_disjoint_iff,
+    let k := ∑ x in I₁, f x,
+    use ∑ x in I₁, (f x / k) • p x,
+    split, {
 
-  },
-  have hlam : lam > 0 := sorry,
+    }
+  }
 end
