@@ -33,7 +33,6 @@ end defs
 
 namespace pretrivialization
 
-
 variables {𝕜₁ : Type*} [nondiscrete_normed_field 𝕜₁] {𝕜₂ : Type*} [nondiscrete_normed_field 𝕜₂]
   (σ : 𝕜₁ →+* 𝕜₂) [ring_hom_isometric σ]
 
@@ -72,6 +71,16 @@ begin
   { exact 0 }
 end
 
+lemma continuous_linear_map.to_fun'_apply {x : B} (h₁ : x ∈ e₁.base_set) (h₂ : x ∈ e₂.base_set)
+  (f : E₁ x →SL[σ] E₂ x) :
+  continuous_linear_map.to_fun' e₁ e₂ ⟨x, f⟩ =
+  ⟨x, ((e₂.continuous_linear_equiv_at x h₂ : E₂ x →L[𝕜₂] F₂).comp f).comp
+    ((e₁.continuous_linear_equiv_at x h₁).symm : F₁ →L[𝕜₁] E₁ x)⟩ :=
+begin
+  rw continuous_linear_map.to_fun',
+  dsimp,
+end
+
 /-- Given trivializations `e₁`, `e₂` for vector bundles `E₁`, `E₂` over a base `B`, the inverse
 function for the construction `topological_vector_bundle.pretrivialization.continuous_linear_map`,
 the induced pretrivialization for the continuous semilinear maps from `E₁` and `E₂`. -/
@@ -95,44 +104,41 @@ def continuous_linear_map :
   @pretrivialization 𝕜₂ B (F₁ →SL[σ] F₂) (vector_bundle_continuous_linear_map σ F₁ E₁ F₂ E₂) _
   (vector_bundle_continuous_linear_map.add_comm_monoid σ F₁ E₁ F₂ E₂)
   (vector_bundle_continuous_linear_map.module σ F₁ E₁ F₂ E₂) _ _ _ _ :=
-sorry
--- { to_fun := prod.to_fun' e₁ e₂,
---   inv_fun := prod.inv_fun' e₁ e₂,
---   source := (proj (λ x, E₁ x × E₂ x)) ⁻¹' (e₁.base_set.inter e₂.base_set),
---   target := (e₁.base_set.inter e₂.base_set) ×ˢ (set.univ : set (F₁ × F₂)),
---   map_source' := λ ⟨x, v₁, v₂⟩ h, ⟨h, set.mem_univ _⟩,
---   map_target' := λ ⟨x, w₁, w₂⟩ h, h.1,
---   left_inv' := λ ⟨x, v₁, v₂⟩ h,
---   begin
---     simp only [prod.to_fun', prod.inv_fun', sigma.mk.inj_iff, true_and, eq_self_iff_true,
---       prod.mk.inj_iff, heq_iff_eq],
---     split,
---     { rw [dif_pos, ← e₁.continuous_linear_equiv_at_apply x h.1,
---         continuous_linear_equiv.symm_apply_apply] },
---     { rw [dif_pos, ← e₂.continuous_linear_equiv_at_apply x h.2,
---         continuous_linear_equiv.symm_apply_apply] },
---   end,
---   right_inv' := λ ⟨x, w₁, w₂⟩ ⟨h, _⟩,
---   begin
---     dsimp [prod.to_fun', prod.inv_fun'],
---     simp only [prod.mk.inj_iff, eq_self_iff_true, true_and],
---     split,
---     { rw [dif_pos, ← e₁.continuous_linear_equiv_at_apply x h.1,
---         continuous_linear_equiv.apply_symm_apply] },
---     { rw [dif_pos, ← e₂.continuous_linear_equiv_at_apply x h.2,
---         continuous_linear_equiv.apply_symm_apply] },
---   end,
---   open_target := (e₁.open_base_set.inter e₂.open_base_set).prod is_open_univ,
---   base_set := e₁.base_set.inter e₂.base_set,
---   open_base_set := e₁.open_base_set.inter e₂.open_base_set,
---   source_eq := rfl,
---   target_eq := rfl,
---   proj_to_fun := λ ⟨x, v₁, v₂⟩ h, rfl,
---   linear := λ x ⟨h₁, h₂⟩,
---   { map_add := λ ⟨v₁, v₂⟩ ⟨v₁', v₂'⟩,
---       congr_arg2 prod.mk ((e₁.linear x h₁).map_add v₁ v₁') ((e₂.linear x h₂).map_add v₂ v₂'),
---     map_smul := λ c ⟨v₁, v₂⟩,
---       congr_arg2 prod.mk ((e₁.linear x h₁).map_smul c v₁) ((e₂.linear x h₂).map_smul c v₂), } }
+{ to_fun := continuous_linear_map.to_fun' e₁ e₂,
+  inv_fun := continuous_linear_map.inv_fun' e₁ e₂,
+  source := (proj (λ x, E₁ x →SL[σ] E₂ x)) ⁻¹' (e₁.base_set.inter e₂.base_set),
+  target := (e₁.base_set.inter e₂.base_set) ×ˢ (set.univ : set (F₁ →SL[σ] F₂)),
+  map_source' := λ ⟨x, f⟩ h, ⟨h, set.mem_univ _⟩,
+  map_target' := λ ⟨x, f⟩ h, h.1,
+  left_inv' := λ ⟨x, f⟩ h,
+  begin
+    simp only [continuous_linear_map.to_fun', continuous_linear_map.inv_fun', sigma.mk.inj_iff, true_and, eq_self_iff_true,
+      prod.mk.inj_iff, heq_iff_eq],
+    -- split,
+    rw [dif_pos, dif_pos],-- ← e₁.continuous_linear_equiv_at_apply x h.1,
+        -- continuous_linear_equiv.symm_apply_apply] },
+    { rw [dif_pos, ← e₂.continuous_linear_equiv_at_apply x h.2,
+        continuous_linear_equiv.symm_apply_apply] },
+  end,
+  right_inv' := λ ⟨x, f⟩ ⟨h, _⟩,
+  begin
+    dsimp [prod.to_fun', prod.inv_fun'],
+    simp only [prod.mk.inj_iff, eq_self_iff_true, true_and],
+    split,
+    { rw [dif_pos, ← e₁.continuous_linear_equiv_at_apply x h.1,
+        continuous_linear_equiv.apply_symm_apply] },
+    { rw [dif_pos, ← e₂.continuous_linear_equiv_at_apply x h.2,
+        continuous_linear_equiv.apply_symm_apply] },
+  end,
+  open_target := (e₁.open_base_set.inter e₂.open_base_set).prod is_open_univ,
+  base_set := e₁.base_set.inter e₂.base_set,
+  open_base_set := e₁.open_base_set.inter e₂.open_base_set,
+  source_eq := rfl,
+  target_eq := rfl,
+  proj_to_fun := λ ⟨x, f⟩ h, rfl,
+  linear := λ x h,
+  { map_add := λ f f', sorry,
+    map_smul := λ c f, sorry, } }
 
 -- @[simp] lemma base_set_prod (e₁ : trivialization 𝕜 F₁ E₁) (e₂ : trivialization 𝕜 F₂ E₂) :
 --   (prod e₁ e₂).base_set = e₁.base_set ∩ e₂.base_set :=
