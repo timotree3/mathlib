@@ -877,7 +877,7 @@ lemma tendsto_rpow_div_mul_add (a b c : ℝ) (hb : 0 ≠ b) :
 begin
   refine tendsto.congr' _ ((tendsto_exp_nhds_0_nhds_1.comp
     (by simpa only [mul_zero, pow_one] using ((@tendsto_const_nhds _ _ _ a _).mul
-      (tendsto_div_pow_mul_exp_add_at_top b c 1 hb (by norm_num))))).comp (tendsto_log_at_top)),
+      (tendsto_div_pow_mul_exp_add_at_top b c 1 hb)))).comp tendsto_log_at_top),
   apply eventually_eq_of_mem (Ioi_mem_at_top (0:ℝ)),
   intros x hx,
   simp only [set.mem_Ioi, function.comp_app] at hx ⊢,
@@ -1402,6 +1402,13 @@ begin
   nth_rewrite 0 ←rpow_one x,
   nth_rewrite 0 ←@_root_.mul_inv_cancel _ _ z (ne_of_lt hz).symm,
   rw [rpow_mul, ←one_div, @rpow_lt_rpow_iff _ _ (1/z) (by simp [hz])],
+end
+
+lemma rpow_one_div_le_iff {x y : ℝ≥0∞} {z : ℝ} (hz : 0 < z) : x ^ (1 / z) ≤ y ↔ x ≤ y ^ z :=
+begin
+  nth_rewrite 0 ← ennreal.rpow_one y,
+  nth_rewrite 1 ← @_root_.mul_inv_cancel _ _ z hz.ne.symm,
+  rw [ennreal.rpow_mul, ← one_div, ennreal.rpow_le_rpow_iff (one_div_pos.2 hz)],
 end
 
 lemma rpow_lt_rpow_of_exponent_lt {x : ℝ≥0∞} {y z : ℝ} (hx : 1 < x) (hx' : x ≠ ⊤) (hyz : y < z) :
