@@ -71,11 +71,11 @@ def obj (𝓕 : presheaf_of_module 𝓞2) : presheaf_of_module 𝓞1 :=
           map_add' := λ _ _, by rw map_add,
           map_smul' := λ r x, begin
             simp only [ring_hom.id_apply],
-            erw presheaf_of_module.compatible_smul,
-            erw [restriction_of_scalars.smul_def'],
-            conv_rhs { erw [restriction_of_scalars.smul_def], },
-            congr',
-            erw ring_hom.congr_fun (f.naturality inc),
+            rw restriction_of_scalars.smul_def',
+            rw presheaf_of_module.compatible_smul,
+            have h := ring_hom.congr_fun (f.naturality inc) r,
+            change _ = (𝓞2.map inc) ((f.app U) r) at h,
+            rw ← h,
             refl,
           end }⟩,
       map_id' := λ U, begin
@@ -93,6 +93,7 @@ def obj (𝓕 : presheaf_of_module 𝓞2) : presheaf_of_module 𝓞1 :=
           erw this,
           congr', },
       end,
+--      map_comp' := sorry,
       map_comp' := λ U V W incUV incVW, begin
         rw bundledMap.ext,
         split,
@@ -102,16 +103,19 @@ def obj (𝓕 : presheaf_of_module 𝓞2) : presheaf_of_module 𝓞1 :=
           change (𝓕.self.map (incUV ≫ incVW)).2 m = (𝓕.self.map incVW).2 ((𝓕.self.map incUV).2 m),
           erw category_theory.functor.map_comp 𝓕.self incUV incVW,
           refl, }
-      end },
-  e :=
-    { hom :=
-        { app := λ U, 𝟙 _,
-          naturality' := λ U V inc, sorry },
-      inv :=
-        { app := λ U, 𝟙 _,
-          naturality' := λ U V inc, sorry },
-      hom_inv_id' := sorry,
-      inv_hom_id' := sorry } }.
+      end
+      },
+  e := sorry,
+  -- e :=
+  --   { hom :=
+  --       { app := λ U, 𝟙 _,
+  --         naturality' := λ U V inc, sorry },
+  --     inv :=
+  --       { app := λ U, 𝟙 _,
+  --         naturality' := λ U V inc, sorry },
+  --     hom_inv_id' := sorry,
+  --     inv_hom_id' := sorry }
+      }.
 
 end restriction
 
