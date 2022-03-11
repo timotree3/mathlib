@@ -115,7 +115,7 @@ begin
   { exact commutator_mem_commutator ⟨g₁, h₁, rfl⟩ ⟨g₂, h₂, rfl⟩ },
   { rintros _ ⟨g₁, h₁, rfl⟩ _ ⟨g₂, h₂, rfl⟩,
     rw ← map_commutator_element,
-    refine mem_map_of_mem f (commutator_mem_commutator h₁ h₂) },
+    exact mem_map_of_mem f (commutator_mem_commutator h₁ h₂) },
 end
 
 lemma commutator_prod_prod {G₂ : Type*} [group G₂]
