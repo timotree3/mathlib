@@ -194,11 +194,7 @@ begin
   { exact derived_series_one G },
   rw [derived_series_succ, ih],
   cases (commutator.normal G).eq_bot_or_eq_top with h h,
-<<<<<<< HEAD
-  { rw [h, commutator_bot_right] },
-=======
   { rw [h, commutator_bot_left] },
->>>>>>> master
   { rwa h },
 end
 
