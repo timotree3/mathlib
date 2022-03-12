@@ -353,11 +353,11 @@ namespace topological_vector_bundle_core
 variables {R B F} {ι : Type*} (Z : topological_vector_bundle_core R B F ι)
 
 /-- Natural identification to a `topological_fiber_bundle_core`. -/
-def to_topological_vector_bundle_core : topological_fiber_bundle_core ι B F :=
+def to_topological_fiber_bundle_core : topological_fiber_bundle_core ι B F :=
 { coord_change := λ i j b, Z.coord_change i j b, ..Z }
 
 instance to_topological_vector_bundle_core_coe : has_coe (topological_vector_bundle_core R B F ι)
-  (topological_fiber_bundle_core ι B F) := ⟨to_topological_vector_bundle_core⟩
+  (topological_fiber_bundle_core ι B F) := ⟨to_topological_fiber_bundle_core⟩
 
 include Z
 
