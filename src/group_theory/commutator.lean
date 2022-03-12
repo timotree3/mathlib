@@ -69,6 +69,13 @@ H₃.closure_le.trans ⟨λ h a b c d, h ⟨a, b, c, d, rfl⟩, λ h g ⟨a, b, 
 lemma commutator_mono (h₁ : H₁ ≤ K₁) (h₂ : H₂ ≤ K₂) : ⁅H₁, H₂⁆ ≤ ⁅K₁, K₂⁆ :=
 commutator_le.mpr (λ g₁ hg₁ g₂ hg₂, commutator_mem_commutator (h₁ hg₁) (h₂ hg₂))
 
+lemma commutator_eq_bot_iff_le_centralizer : ⁅H₁, H₂⁆ = ⊥ ↔ H₁ ≤ H₂.centralizer :=
+begin
+  rw [eq_bot_iff, commutator_le],
+  refine forall_congr (λ p, forall_congr (λ hp, forall_congr (λ q, forall_congr (λ hq, _)))),
+  rw [mem_bot, commutator_element_eq_one_iff_mul_comm, eq_comm],
+end
+
 variables (H₁ H₂)
 
 lemma commutator_comm_le : ⁅H₁, H₂⁆ ≤ ⁅H₂, H₁⁆ :=
@@ -97,25 +104,24 @@ lemma commutator_def' [H₁.normal] [H₂.normal] :
   ⁅H₁, H₂⁆ = normal_closure {g | ∃ (g₁ ∈ H₁) (g₂ ∈ H₂), ⁅g₁, g₂⁆ = g} :=
 le_antisymm closure_le_normal_closure (normal_closure_le_normal subset_closure)
 
-lemma commutator_le_right [h : normal H₂] : ⁅H₁, H₂⁆ ≤ H₂ :=
+lemma commutator_le_right [h : H₂.normal] : ⁅H₁, H₂⁆ ≤ H₂ :=
 commutator_le.mpr (λ g₁ h₁ g₂ h₂, H₂.mul_mem (h.conj_mem g₂ h₂ g₁) (H₂.inv_mem h₂))
 
-lemma commutator_le_left [h : normal H₁] : ⁅H₁, H₂⁆ ≤ H₁ :=
+lemma commutator_le_left [H₁.normal] : ⁅H₁, H₂⁆ ≤ H₁ :=
 commutator_comm H₂ H₁ ▸ commutator_le_right H₂ H₁
 
-@[simp] lemma commutator_bot_left (H : subgroup G) : ⁅(⊥ : subgroup G), H⁆ = ⊥ :=
-le_bot_iff.mp (commutator_le_left ⊥ H)
+@[simp] lemma commutator_bot_left : ⁅(⊥ : subgroup G), H₁⁆ = ⊥ :=
+le_bot_iff.mp (commutator_le_left ⊥ H₁)
 
-@[simp] lemma commutator_bot_right (H : subgroup G) : ⁅H, ⊥⁆ = (⊥ : subgroup G) :=
-le_bot_iff.mp (commutator_le_right H ⊥)
+@[simp] lemma commutator_bot_right : ⁅H₁, ⊥⁆ = (⊥ : subgroup G) :=
+le_bot_iff.mp (commutator_le_right H₁ ⊥)
 
-lemma commutator_le_inf (H₁ H₂ : subgroup G) [normal H₁] [normal H₂] : ⁅H₁, H₂⁆ ≤ H₁ ⊓ H₂ :=
+lemma commutator_le_inf [normal H₁] [normal H₂] : ⁅H₁, H₂⁆ ≤ H₁ ⊓ H₂ :=
 le_inf (commutator_le_left H₁ H₂) (commutator_le_right H₁ H₂)
 
 end normal
 
-lemma map_commutator {G₂ : Type*} [group G₂] (f : G →* G₂) (H₁ H₂ : subgroup G)  :
-  map f ⁅H₁, H₂⁆ = ⁅map f H₁, map f H₂⁆ :=
+lemma map_commutator (f : G →* G') : map f ⁅H₁, H₂⁆ = ⁅map f H₁, map f H₂⁆ :=
 begin
   simp_rw [le_antisymm_iff, map_le_iff_le_comap, commutator_le, mem_comap, map_commutator_element],
   refine ⟨λ g₁ h₁ g₂ h₂, _, _⟩,
@@ -125,9 +131,8 @@ begin
     exact mem_map_of_mem f (commutator_mem_commutator h₁ h₂) },
 end
 
-lemma commutator_prod_prod {G₂ : Type*} [group G₂]
-  (H₁ K₁ : subgroup G) (H₂ K₂ : subgroup G₂) :
-  ⁅H₁.prod H₂, K₁.prod K₂⁆ = ⁅H₁, K₁⁆.prod ⁅H₂, K₂⁆ :=
+lemma commutator_prod_prod (K₁ K₂ : subgroup G') :
+  ⁅H₁.prod K₁, H₂.prod K₂⁆ = ⁅H₁, H₂⁆.prod ⁅K₁, K₂⁆ :=
 begin
   apply le_antisymm,
   { rw commutator_le,
