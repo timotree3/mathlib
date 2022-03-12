@@ -624,10 +624,12 @@ end comm_group
 section commutator
 
 /-- The commutator of two elements `g₁` and `g₂`. -/
-instance commutator_element {G : Type*} [group G] : has_bracket G G :=
+@[to_additive add_commutator_element] instance commutator_element
+  {G : Type*} [group G] : has_bracket G G :=
 ⟨λ g₁ g₂, g₁ * g₂ * g₁⁻¹ * g₂⁻¹⟩
 
-lemma commutator_element_def  {G : Type*} [group G] (g₁ g₂ : G) :
-  ⁅g₁, g₂⁆ = g₁ * g₂ * g₁⁻¹ * g₂⁻¹ := rfl
+@[to_additive add_commutator_element_def] lemma commutator_element_def
+  {G : Type*} [group G] (g₁ g₂ : G) : ⁅g₁, g₂⁆ = g₁ * g₂ * g₁⁻¹ * g₂⁻¹ :=
+rfl
 
 end commutator
