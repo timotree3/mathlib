@@ -9,10 +9,14 @@ variables {𝕜 : Type*} {E : Type u} [linear_ordered_field 𝕜] [add_comm_grou
 lemma radon_lemma {ι} {p : ι → E} (hp : function.injective p) (h : ¬ affine_independent 𝕜 p) :
   ∃ (M₁ M₂ ⊆ set.range p), disjoint M₁ M₂ ∧ ¬ disjoint (convex_hull 𝕜 M₁) (convex_hull 𝕜 M₂) :=
 begin
+  -- We take an affine combination of the points in `ι` adding up to 0.
   classical,
   rw affine_independent_def at h,
   push_neg at h,
   rcases h with ⟨M, f, hf, hf', a, ha, ha'⟩,
+
+  -- We choose `M₁` and `M₂` as the sets of points in this combination with positive and negative
+  -- coefficients respectively.
   let I₁ := M.filter (λ i : ι, 0 < f i),
   let I₂ := M.filter (λ i : ι, ¬ 0 < f i),
   refine ⟨p '' I₁, set.image_subset_range p I₁, p '' I₂, set.image_subset_range p I₂, _, _⟩,
@@ -20,6 +24,8 @@ begin
     rintros _ ⟨i, hi, rfl⟩ _ ⟨j, hj, rfl⟩ h,
     rw hp h at hi,
     exact (finset.mem_filter.1 hj).2 (finset.mem_filter.1 hi).2 },
+
+  -- `∑ x in I₁, (f x / k) • p x = ∑ x in I₂, (- f x / k) • p x` is in both convex hulls.
   { rw set.not_disjoint_iff,
     let k := ∑ x in I₁, f x,
     have HI₁ : ∀ j, j ∈ I₁ → 0 < f j := λ j hj, (finset.mem_filter.1 hj).2,
