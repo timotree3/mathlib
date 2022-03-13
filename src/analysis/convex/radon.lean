@@ -43,13 +43,16 @@ begin
         rw finset.not_nonempty_iff_eq_empty at H,
         sorry } },
     refine ⟨∑ x in I₁, (f x / k) • p x, _, _⟩,
-    { rw [finset.coe_filter],
+    { rw finset.coe_filter,
       exact convex.sum_mem (convex_convex_hull _ _) Hnn HS
         (λ i hi, subset_convex_hull _ _ ⟨i, finset.mem_filter.1 hi, rfl⟩) },
     { have HS₁₂ : ∑ x in I₁, (f x / k) • p x = ∑ x in I₂, (- f x / k) • p x,
       { simp_rw [neg_div, neg_smul],
         rw [finset.sum_neg_distrib, eq_neg_iff_add_eq_zero, HI₁₂,
           finset.sum_sdiff (finset.filter_subset _ _)],
+        simp_rw [div_eq_mul_inv, mul_comm _ (k⁻¹), mul_smul],
+        rw ←finset.smul_sum,
+        convert smul_zero _,
         sorry },
       rw HS₁₂,
       refine convex.sum_mem (convex_convex_hull _ _) (λ i hi, div_nonneg (le_neg_of_le_neg _) hk) _
