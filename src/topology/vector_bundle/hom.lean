@@ -15,7 +15,7 @@ open bundle
 
 namespace topological_vector_bundle
 
-variables {𝕜₁ : Type*} [semiring 𝕜₁] [topological_space 𝕜₁]
+variables {𝕜₁ : Type*} [semiring 𝕜₁]
 variables {𝕜₂ : Type*} [comm_semiring 𝕜₂] [topological_space 𝕜₂]
 variables (σ : 𝕜₁ →+* 𝕜₂)
 variables {B : Type*}
@@ -49,7 +49,6 @@ variables [add_comm_group F₁] [module 𝕜₁ F₁] [topological_space F₁]
 variables [add_comm_group F₂] [module 𝕜₂ F₂] [topological_space F₂]
   [topological_space (total_space E₂)]
   [topological_vector_bundle 𝕜₂ F₂ E₂]
-
 
 namespace pretrivialization
 
@@ -159,7 +158,7 @@ def _root_.topological_vector_bundle.fiber_bundle_pretrivialization.continuous_l
   target_eq := rfl,
   proj_to_fun := λ ⟨x, f⟩ h, rfl }
 
-variables [has_continuous_add F₁] [has_continuous_add F₂] [has_continuous_smul 𝕜₂ F₂]
+variables [has_continuous_add F₂] [has_continuous_smul 𝕜₂ F₂]
 
 /-- Given trivializations `e₁`, `e₂` for vector bundles `E₁`, `E₂` over a base `B`, the induced
 pretrivialization for the continuous `σ`-semilinear maps from `E₁` to `E₂`.  That is, the map which
@@ -200,12 +199,16 @@ lemma continuous_linear_map_symm_apply {e₁ : trivialization 𝕜₁ F₁ E₁}
       ((e₁.continuous_linear_equiv_at x hx₁) : E₁ x →L[𝕜₁] F₁)⟩ :=
 continuous_linear_map.inv_fun'_apply hx₁ hx₂ f
 
--- lemma continuous_triv_change_continuous_linear_map
---   (e₁ f₁ : trivialization 𝕜₁ F₁ E₁) (e₂ f₂ : trivialization 𝕜₂ F₂ E₂) :
---   continuous_on
---     ((continuous_linear_map σ e₁ e₂ : total_space E₁ → B × F₁) ∘ (continuous_linear_map σ f₁ f₂).to_local_equiv.symm)
---     ((continuous_linear_map σ f₁ f₂).target ∩ ((continuous_linear_map σ f₁ f₂).to_local_equiv.symm) ⁻¹' (continuous_linear_map σ e₁ e₂).source) :=
--- sorry
+lemma continuous_triv_change_continuous_linear_map
+  (e₁ f₁ : trivialization 𝕜₁ F₁ E₁) (e₂ f₂ : trivialization 𝕜₂ F₂ E₂) :
+  continuous_on
+    ((continuous_linear_map σ e₁ e₂
+      : total_space (vector_bundle_continuous_linear_map σ F₁ E₁ F₂ E₂) → B × (F₁ →SL[σ] F₂))
+    ∘ (continuous_linear_map σ f₁ f₂).to_local_equiv.symm)
+    ((continuous_linear_map σ f₁ f₂).target
+    ∩ ((continuous_linear_map σ f₁ f₂).to_local_equiv.symm) ⁻¹'
+      (continuous_linear_map σ e₁ e₂).source) :=
+sorry
 -- begin
 --   refine continuous_on.prod' _ _,
 --   { apply continuous_fst.continuous_on.congr,
@@ -251,7 +254,7 @@ open pretrivialization
 
 variables [topological_space (F₁ →SL[σ] F₂)]
 
-variables [has_continuous_add F₁] [has_continuous_add F₂] [has_continuous_smul 𝕜₂ F₂]
+variables [has_continuous_add F₂] [has_continuous_smul 𝕜₂ F₂]
 
 /-- The continuous `σ`-semilinear maps between two topological vector bundles form a
 `topological_vector_prebundle` (this is an auxiliary construction for the
