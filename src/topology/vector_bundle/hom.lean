@@ -15,23 +15,23 @@ open bundle
 
 namespace topological_vector_bundle
 
-section defs
-variables {R₁ : Type*} [semiring R₁] [topological_space R₁]
-variables {R₂ : Type*} [comm_semiring R₂] [topological_space R₂]
-variables (σ : R₁ →+* R₂)
+variables {𝕜₁ : Type*} [semiring 𝕜₁] [topological_space 𝕜₁]
+variables {𝕜₂ : Type*} [comm_semiring 𝕜₂] [topological_space 𝕜₂]
+variables (σ : 𝕜₁ →+* 𝕜₂)
 variables {B : Type*}
-  (F₁ : Type*) (E₁ : B → Type*) [Π x, add_comm_monoid (E₁ x)] [Π x, module R₁ (E₁ x)]
+  (F₁ : Type*) (E₁ : B → Type*) [Π x, add_comm_monoid (E₁ x)] [Π x, module 𝕜₁ (E₁ x)]
   [Π x : B, topological_space (E₁ x)] [Π x, has_continuous_add (E₁ x)]
-  [Π x, has_continuous_smul R₁ (E₁ x)]
-  (F₂ : Type*) (E₂ : B → Type*) [Π x, add_comm_monoid (E₂ x)] [Π x, module R₂ (E₂ x)]
+  [Π x, has_continuous_smul 𝕜₁ (E₁ x)]
+  (F₂ : Type*) (E₂ : B → Type*) [Π x, add_comm_monoid (E₂ x)] [Π x, module 𝕜₂ (E₂ x)]
   [Π x : B, topological_space (E₂ x)] [Π x, has_continuous_add (E₂ x)]
-  [Π x, has_continuous_smul R₂ (E₂ x)]
+  [Π x, has_continuous_smul 𝕜₂ (E₂ x)]
 
+section defs
 include F₁ F₂
 
 /-- The bundle of continuous `σ`-semilinear maps between the topological vector bundles `E₁` and
 `E₂`.  Type synonym for `λ x, E₁ x →SL[σ] E₂ x`. -/
-@[derive [add_comm_monoid, module R₂, inhabited], nolint unused_arguments]
+@[derive [add_comm_monoid, module 𝕜₂, inhabited], nolint unused_arguments]
 def vector_bundle_continuous_linear_map (x : B) :=
 E₁ x →SL[σ] E₂ x
 
@@ -41,22 +41,17 @@ continuous_linear_map.add_monoid_hom_class
 
 end defs
 
-variables {𝕜₁ : Type*} [nondiscrete_normed_field 𝕜₁] {𝕜₂ : Type*} [nondiscrete_normed_field 𝕜₂]
-  (σ : 𝕜₁ →+* 𝕜₂) [ring_hom_isometric σ]
+variables [topological_space B]
 
-variables {B : Type*} [topological_space B]
-
-variables (F₁ : Type*) [normed_group F₁] [normed_space 𝕜₁ F₁]
-  (E₁ : B → Type*) [Π x, add_comm_monoid (E₁ x)] [Π x, module 𝕜₁ (E₁ x)]
-  [Π x : B, topological_space (E₁ x)] [topological_space (total_space E₁)]
-  [Π x, has_continuous_add (E₁ x)] [Π x, has_continuous_smul 𝕜₁ (E₁ x)]
+variables [add_comm_group F₁] [module 𝕜₁ F₁] [topological_space F₁]
+  [has_continuous_smul 𝕜₁ F₁] [topological_space (total_space E₁)]
   [topological_vector_bundle 𝕜₁ F₁ E₁]
 
-variables (F₂ : Type*) [normed_group F₂][normed_space 𝕜₂ F₂]
-  (E₂ : B → Type*) [Π x, add_comm_monoid (E₂ x)] [Π x, module 𝕜₂ (E₂ x)]
-  [Π x : B, topological_space (E₂ x)] [topological_space (total_space E₂)]
-  [Π x, has_continuous_add (E₂ x)] [Π x, has_continuous_smul 𝕜₂ (E₂ x)]
+variables [add_comm_group F₂] [module 𝕜₂ F₂] [topological_space F₂]
+  [has_continuous_smul 𝕜₂ F₂] [topological_space (total_space E₂)]
   [topological_vector_bundle 𝕜₂ F₂ E₂]
+
+variables [topological_space (F₁ →SL[σ] F₂)]
 
 namespace pretrivialization
 
@@ -164,6 +159,8 @@ def _root_.topological_vector_bundle.fiber_bundle_pretrivialization.continuous_l
   target_eq := rfl,
   proj_to_fun := λ ⟨x, f⟩ h, rfl }
 
+variables [has_continuous_add F₁] [has_continuous_add F₂]
+
 /-- Given trivializations `e₁`, `e₂` for vector bundles `E₁`, `E₂` over a base `B`, the induced
 pretrivialization for the continuous `σ`-semilinear maps from `E₁` to `E₂`.  That is, the map which
 will later become a trivialization, after this direct sum is equipped with the right topological
@@ -270,6 +267,8 @@ continuous_linear_map.inv_fun'_apply hx₁ hx₂ f
 end pretrivialization
 
 open pretrivialization
+
+variables [has_continuous_add F₁] [has_continuous_add F₂]
 
 /-- The continuous `σ`-semilinear maps between two topological vector bundles form a
 `topological_vector_prebundle` (this is an auxiliary construction for the
