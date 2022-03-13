@@ -4,7 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Heather Macbeth
 -/
 
-import topology.vector_bundle
+import topology.vector_bundle.basic
 import analysis.normed_space.operator_norm
 
 /-! # The bundle of continuous linear maps between two vector bundles over the same base -/
