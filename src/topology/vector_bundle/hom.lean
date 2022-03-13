@@ -173,9 +173,7 @@ def continuous_linear_map :
   (vector_bundle_continuous_linear_map.add_comm_monoid σ F₁ E₁ F₂ E₂)
   (vector_bundle_continuous_linear_map.module σ F₁ E₁ F₂ E₂) _ _ _ _ :=
 { linear := λ x h,
-  { map_add := λ L L', begin
-    dsimp,
-  end,
+  { map_add := λ L L', sorry,
     map_smul := λ c L, sorry, },
   .. topological_vector_bundle.fiber_bundle_pretrivialization.continuous_linear_map σ e₁ e₂ }
 
@@ -224,11 +222,12 @@ lemma continuous_linear_map_symm_apply {e₁ : trivialization 𝕜₁ F₁ E₁}
       ((e₁.continuous_linear_equiv_at x hx₁) : E₁ x →L[𝕜₁] F₁)⟩ :=
 continuous_linear_map.inv_fun'_apply hx₁ hx₂ f
 
-lemma continuous_triv_change_continuous_linear_map
-  (e₁ f₁ : trivialization 𝕜₁ F₁ E₁) (e₂ f₂ : trivialization 𝕜₂ F₂ E₂) :
-  continuous_on ((continuous_linear_map σ e₁ e₂) ∘ (continuous_linear_map σ f₁ f₂).to_local_equiv.symm)
-    ((continuous_linear_map σ f₁ f₂).target ∩ ((continuous_linear_map σ f₁ f₂).to_local_equiv.symm) ⁻¹' (continuous_linear_map σ e₁ e₂).source) :=
-sorry
+-- lemma continuous_triv_change_continuous_linear_map
+--   (e₁ f₁ : trivialization 𝕜₁ F₁ E₁) (e₂ f₂ : trivialization 𝕜₂ F₂ E₂) :
+--   continuous_on
+--     ((continuous_linear_map σ e₁ e₂ : total_space E₁ → B × F₁) ∘ (continuous_linear_map σ f₁ f₂).to_local_equiv.symm)
+--     ((continuous_linear_map σ f₁ f₂).target ∩ ((continuous_linear_map σ f₁ f₂).to_local_equiv.symm) ⁻¹' (continuous_linear_map σ e₁ e₂).source) :=
+-- sorry
 -- begin
 --   refine continuous_on.prod' _ _,
 --   { apply continuous_fst.continuous_on.congr,
@@ -272,13 +271,6 @@ end pretrivialization
 
 open pretrivialization
 
-#check @topological_vector_prebundle 𝕜₂ B (F₁ →SL[σ] F₂)
-  (vector_bundle_continuous_linear_map σ F₁ E₁ F₂ E₂) _
-  (vector_bundle_continuous_linear_map.add_comm_monoid σ F₁ E₁ F₂ E₂)
-  (vector_bundle_continuous_linear_map.module σ F₁ E₁ F₂ E₂) _ _ _ _
-
--- how do we get the topology on each fibre?
-
 /-- The continuous `σ`-semilinear maps between two topological vector bundles form a
 `topological_vector_prebundle` (this is an auxiliary construction for the
 `topological_vector_bundle` instance, in which the pretrivializations are collated but no topology
@@ -288,16 +280,17 @@ def _root_.vector_bundle_continuous_linear_map.topological_vector_prebundle :
   (vector_bundle_continuous_linear_map σ F₁ E₁ F₂ E₂) _
   (vector_bundle_continuous_linear_map.add_comm_monoid σ F₁ E₁ F₂ E₂)
   (vector_bundle_continuous_linear_map.module σ F₁ E₁ F₂ E₂) _ _ _ _ :=
-sorry
--- { pretrivialization_at := λ x,
---     pretrivialization.continuous_linear_map (trivialization_at 𝕜 F₁ E₁ x) (trivialization_at 𝕜 F₂ E₂ x),
---   mem_base_pretrivialization_at := λ x,
---     ⟨mem_base_set_trivialization_at 𝕜 F₁ E₁ x, mem_base_set_trivialization_at 𝕜 F₂ E₂ x⟩,
---   continuous_triv_change := λ p q, pretrivialization.continuous_triv_change_continuous_linear_map
---     (trivialization_at 𝕜 F₁ E₁ p)
---     (trivialization_at 𝕜 F₁ E₁ q)
---     (trivialization_at 𝕜 F₂ E₂ p)
---     (trivialization_at 𝕜 F₂ E₂ q),
+{ pretrivialization_at := λ x,
+    pretrivialization.continuous_linear_map σ (trivialization_at 𝕜₁ F₁ E₁ x) (trivialization_at 𝕜₂ F₂ E₂ x),
+  mem_base_pretrivialization_at := λ x,
+    ⟨mem_base_set_trivialization_at 𝕜₁ F₁ E₁ x, mem_base_set_trivialization_at 𝕜₂ F₂ E₂ x⟩,
+  continuous_triv_change := λ p q, sorry }
+  -- pretrivialization.continuous_triv_change_continuous_linear_map
+  --   (trivialization_at 𝕜₁ F₁ E₁ p)
+  --   (trivialization_at 𝕜₁ F₁ E₁ q)
+  --   (trivialization_at 𝕜₂ F₂ E₂ p)
+  --   (trivialization_at 𝕜₂ F₂ E₂ q) }
+
 --   total_space_mk_inducing := λ b,
 --   begin
 --     let e₁ := trivialization_at 𝕜 F₁ E₁ b,
@@ -314,13 +307,37 @@ sorry
 --       simpa using continuous_linear_map_apply hb₁ hb₂ w.1 w.2 },
 --   end }
 
--- /-- The natural topology on the total space of the continuous_linear_mapuct of two vector bundles. -/
--- instance : topological_space (total_space (vector_bundle_continuous_linear_map 𝕜 F₁ E₁ F₂ E₂)) :=
--- (vector_bundle_continuous_linear_map.topological_vector_prebundle 𝕜 F₁ E₁ F₂ E₂).total_space_topology
+/-- Topology on the continuous `σ`-semilinear_maps between the respective fibres at a point of two
+"normable" vector bundles over the same base. Here "normable" means that the bundles have fibres
+modelled on normed spaces `F₁`, `F₂` respectively.  The topology we put on the continuous
+`σ`-semilinear_maps is the topology coming from the operator norm on maps from `F₁` to `F₂`. -/
+instance (x : B) : topological_space (vector_bundle_continuous_linear_map σ F₁ E₁ F₂ E₂ x) :=
+@topological_vector_prebundle.fiber_topology 𝕜₂ B (F₁ →SL[σ] F₂)
+  (vector_bundle_continuous_linear_map σ F₁ E₁ F₂ E₂) _
+  (vector_bundle_continuous_linear_map.add_comm_monoid σ F₁ E₁ F₂ E₂)
+  (vector_bundle_continuous_linear_map.module σ F₁ E₁ F₂ E₂) _ _ _ _
+  (vector_bundle_continuous_linear_map.topological_vector_prebundle σ F₁ E₁ F₂ E₂) x
 
--- /-- The continuous_linear_mapuct of two vector bundles is a vector bundle. -/
--- instance : topological_vector_bundle 𝕜 (F₁ × F₂) (vector_bundle_continuous_linear_map 𝕜 F₁ E₁ F₂ E₂) :=
--- (vector_bundle_continuous_linear_map.topological_vector_prebundle 𝕜 F₁ E₁ F₂ E₂).to_topological_vector_bundle
+/-- Topology on the total space of the continuous `σ`-semilinear_maps between two "normable" vector
+bundles over the same base. -/
+instance : topological_space (total_space (vector_bundle_continuous_linear_map σ F₁ E₁ F₂ E₂)) :=
+@topological_vector_prebundle.total_space_topology 𝕜₂ B (F₁ →SL[σ] F₂)
+  (vector_bundle_continuous_linear_map σ F₁ E₁ F₂ E₂) _
+  (vector_bundle_continuous_linear_map.add_comm_monoid σ F₁ E₁ F₂ E₂)
+  (vector_bundle_continuous_linear_map.module σ F₁ E₁ F₂ E₂) _ _ _ _
+  (vector_bundle_continuous_linear_map.topological_vector_prebundle σ F₁ E₁ F₂ E₂)
+
+/-- The continuous `σ`-semilinear_maps between two vector bundles form a vector bundle. -/
+instance vector_bundle_continuous_linear_map.topological_vector_bundle :
+  @topological_vector_bundle 𝕜₂ B (F₁ →SL[σ] F₂)
+    (vector_bundle_continuous_linear_map σ F₁ E₁ F₂ E₂) _
+    (vector_bundle_continuous_linear_map.add_comm_monoid σ F₁ E₁ F₂ E₂)
+    (vector_bundle_continuous_linear_map.module σ F₁ E₁ F₂ E₂) _ _ _ _ _ _ :=
+@topological_vector_prebundle.to_topological_vector_bundle 𝕜₂ B (F₁ →SL[σ] F₂)
+  (vector_bundle_continuous_linear_map σ F₁ E₁ F₂ E₂) _
+  (vector_bundle_continuous_linear_map.add_comm_monoid σ F₁ E₁ F₂ E₂)
+  (vector_bundle_continuous_linear_map.module σ F₁ E₁ F₂ E₂) _ _ _ _
+  (vector_bundle_continuous_linear_map.topological_vector_prebundle σ F₁ E₁ F₂ E₂)
 
 -- variables {𝕜 F₁ E₁ F₂ E₂}
 
