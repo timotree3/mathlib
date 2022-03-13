@@ -284,7 +284,10 @@ open pretrivialization
 `topological_vector_bundle` instance, in which the pretrivializations are collated but no topology
 on the total space is yet provided). -/
 def _root_.vector_bundle_continuous_linear_map.topological_vector_prebundle :
-  topological_vector_prebundle 𝕜₂ (F₁ →SL[σ] F₂) (vector_bundle_continuous_linear_map σ F₁ E₁ F₂ E₂) :=
+  @topological_vector_prebundle 𝕜₂ B (F₁ →SL[σ] F₂)
+  (vector_bundle_continuous_linear_map σ F₁ E₁ F₂ E₂) _
+  (vector_bundle_continuous_linear_map.add_comm_monoid σ F₁ E₁ F₂ E₂)
+  (vector_bundle_continuous_linear_map.module σ F₁ E₁ F₂ E₂) _ _ _ _ :=
 sorry
 -- { pretrivialization_at := λ x,
 --     pretrivialization.continuous_linear_map (trivialization_at 𝕜 F₁ E₁ x) (trivialization_at 𝕜 F₂ E₂ x),

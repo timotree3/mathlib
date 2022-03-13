@@ -498,7 +498,7 @@ section
 
 /-! ### Topological vector prebundle -/
 
-variable [∀ x, topological_space (E x)]
+-- variable [∀ x, topological_space (E x)]
 
 open topological_space
 
@@ -513,7 +513,7 @@ structure topological_vector_prebundle :=
 (continuous_triv_change : ∀ x y : B, continuous_on ((pretrivialization_at x) ∘
   (pretrivialization_at y).to_local_equiv.symm) ((pretrivialization_at y).target ∩
   ((pretrivialization_at y).to_local_equiv.symm ⁻¹' (pretrivialization_at x).source)))
-(total_space_mk_inducing : ∀ (b : B), inducing ((pretrivialization_at b) ∘ (total_space_mk E b)))
+-- (total_space_mk_inducing : ∀ (b : B), inducing ((pretrivialization_at b) ∘ (total_space_mk E b)))
 
 namespace topological_vector_prebundle
 
@@ -558,31 +558,40 @@ begin
   exact a.mem_base_pretrivialization_at b,
 end
 
-@[continuity] lemma continuous_total_space_mk (b : B) :
-  @continuous _ _ _ a.total_space_topology (total_space_mk E b) :=
-begin
-  letI := a.total_space_topology,
-  rw (a.trivialization_at b).to_local_homeomorph.continuous_iff_continuous_comp_left
-    (a.total_space_mk_preimage_source b),
-  exact continuous_iff_le_induced.mpr (le_antisymm_iff.mp (a.total_space_mk_inducing b).induced).1,
-end
+def fiber_topology (b : B) : topological_space (E b) :=
+topological_space.induced (total_space_mk E b) a.total_space_topology
 
-lemma inducing_total_space_mk_of_inducing_comp (b : B)
-  (h : inducing ((a.trivialization_at b) ∘ (total_space_mk E b))) :
-  @inducing _ _ _ a.total_space_topology (total_space_mk E b) :=
-begin
-  letI := a.total_space_topology,
-  rw ←restrict_comp_cod_restrict (a.mem_trivialization_at_source b) at h,
-  apply inducing.of_cod_restrict (a.mem_trivialization_at_source b),
-  refine inducing_of_inducing_compose _ (continuous_on_iff_continuous_restrict.mp
-    (a.trivialization_at b).continuous_to_fun) h,
-  exact (a.continuous_total_space_mk b).cod_restrict (a.mem_trivialization_at_source b),
-end
+-- @[continuity] lemma continuous_total_space_mk (b : B) :
+--   @continuous _ _ _ a.total_space_topology (total_space_mk E b) :=
+-- begin
+--   letI := a.total_space_topology,
+--   rw (a.trivialization_at b).to_local_homeomorph.continuous_iff_continuous_comp_left
+--     (a.total_space_mk_preimage_source b),
+--   exact continuous_iff_le_induced.mpr (le_antisymm_iff.mp (a.total_space_mk_inducing b).induced).1,
+-- end
+
+-- lemma inducing_total_space_mk_of_inducing_comp (b : B)
+--   (h : inducing ((a.trivialization_at b) ∘ (total_space_mk E b))) :
+--   @inducing _ _ _ a.total_space_topology (total_space_mk E b) :=
+-- begin
+--   letI := a.total_space_topology,
+--   rw ←restrict_comp_cod_restrict (a.mem_trivialization_at_source b) at h,
+--   apply inducing.of_cod_restrict (a.mem_trivialization_at_source b),
+--   refine inducing_of_inducing_compose _ (continuous_on_iff_continuous_restrict.mp
+--     (a.trivialization_at b).continuous_to_fun) h,
+--   exact (a.continuous_total_space_mk b).cod_restrict (a.mem_trivialization_at_source b),
+-- end
 
 lemma to_topological_vector_bundle :
-  @topological_vector_bundle R _ F E _ _ _ _ _ _ _ a.total_space_topology _ :=
-{ total_space_mk_inducing := λ b, a.inducing_total_space_mk_of_inducing_comp b
-    (a.total_space_mk_inducing b),
+  @topological_vector_bundle R _ F E _ _ _ _ _ _ _ a.total_space_topology a.fiber_topology :=
+{ total_space_mk_inducing := λ b,
+  begin
+    letI := a.total_space_topology,
+    letI := a.fiber_topology,
+    exact ⟨rfl⟩,
+  end,
+--  a.inducing_total_space_mk_of_inducing_comp b
+--     (a.total_space_mk_inducing b),
   locally_trivial := λ b, ⟨a.trivialization_at b, a.mem_base_pretrivialization_at b⟩ }
 
 end topological_vector_prebundle
