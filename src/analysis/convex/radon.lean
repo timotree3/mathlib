@@ -55,6 +55,8 @@ begin
 
         -- Since every term in `∑ i in M, f i` sum is nonnegative, and `f a ≠ 0`, then the sum is
         -- negative, contradicting `hf`.
+
+        -- This is pretty much `finset.single_lt_sum` but with the signs reversed.
         sorry } },
     refine ⟨∑ x in I₁, (f x / k) • p x, _, _⟩,
     { rw finset.coe_filter,
