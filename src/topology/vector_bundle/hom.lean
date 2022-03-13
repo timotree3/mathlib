@@ -291,14 +291,14 @@ def _root_.vector_bundle_continuous_linear_map.topological_vector_prebundle :
 --   end }
 
 /-- Topology on the continuous `σ`-semilinear_maps between the respective fibres at a point of two
-"normable" vector bundles over the same base. Here "normable" means that the bundles have fibres
-modelled on normed spaces `F₁`, `F₂` respectively.  The topology we put on the continuous
-`σ`-semilinear_maps is the topology coming from the operator norm on maps from `F₁` to `F₂`. -/
+vector bundles over the same base. We assume a topology on the model `F₁ →SL[σ] F₂` for the fibres,
+and the topology on each fibre comes from this topology by identifying with this model. -/
 instance (x : B) : topological_space (vector_bundle_continuous_linear_map σ F₁ E₁ F₂ E₂ x) :=
 (vector_bundle_continuous_linear_map.topological_vector_prebundle σ F₁ E₁ F₂ E₂).fiber_topology x
 
-/-- Topology on the total space of the continuous `σ`-semilinear_maps between two "normable" vector
-bundles over the same base. -/
+/-- Topology on the total space of the continuous `σ`-semilinear_maps between two vector bundles
+over the same base. This implicitly depends on a choice of topology for the fibre model
+`F₁ →SL[σ] F₂`. -/
 instance : topological_space (total_space (vector_bundle_continuous_linear_map σ F₁ E₁ F₂ E₂)) :=
 (vector_bundle_continuous_linear_map.topological_vector_prebundle σ F₁ E₁ F₂ E₂).total_space_topology
 
