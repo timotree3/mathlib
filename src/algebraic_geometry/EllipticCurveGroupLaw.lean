@@ -119,6 +119,12 @@ compute `s₃` is that it's equal to `lt₃+m` where
 
 lemma pow_three {M : Type*} [monoid M] (m : M) : m^3=m*m*m := by {rw [pow_succ, pow_succ, pow_one, mul_assoc] }
 
+example (a b c : K) (h : b ≠ 0) (h0 : a * b = 0) : a = 0 :=
+begin
+  rw mul_eq_zero at h0,
+  tauto,
+end
+
 protected def add : points E → points E → points E
 | zero           zero           := zero
 | zero           (some x y h)   := some x y h
@@ -128,10 +134,9 @@ if h : (t₁ = t₂) then
   --  `P₁=±P₂`. Let's deal with `P₁=-P₂` first
   if h' : s₁ + s₂ + E.a1 * t₁ + E.a3 = 0 then zero
   -- `P₁=P₂` -- we use variables s₁ and t₁ and can prove s₁=s₂
-  else let l := (3*t₁*t₁+2*E.a2*t₁+E.a4)/(2*s₁+E.a1*t₁+E.a3) in
-       let m := s₁-l*t₁ in
-       let t₃ := l^2+E.a1*l+E.a3-2*t₁ in
-  some t₃ (l*t₃+m) begin
+  else let l := (3*t₁*t₁+2*E.a2*t₁+E.a4 - E.a1*s₁)/(2*s₁+E.a1*t₁+E.a3) in
+       let t₃ := l^2+E.a1*l-E.a2-2*t₁ in
+  some t₃ (-E.a1 * t₃ - E.a3 - l * t₃ + l * t₁ - s₁) begin
     subst h,
     rename t₁ t,
     -- prove that s₁ = s₂ using h₁ and h₂ and also h'
@@ -145,35 +150,81 @@ if h : (t₁ = t₂) then
     rename s₁ s,
     rw ← two_mul at h', -- s+s -> 2s because that's the denominator.
     change 2 * s + E.a1 * t + E.a3 ≠ 0 at h',
-    -- these lines are long and manually undo the `let`s other than `u`, which stays for now.
-    set u : units K := ⟨2*s+E.a1*t+E.a3,1/(2*s+E.a1*t+E.a3), mul_div_cancel' 1 h', div_mul_cancel _ h'⟩ with hu,
-    change (((3 * t * t + 2 * E.a2 * t + E.a4) / u) * (((3 * t * t + 2 * E.a2 * t + E.a4) / u) ^ 2 + E.a1 * ((3 * t * t + 2 * E.a2 * t + E.a4) / u) + E.a3 - 2 * t) + (s - ((3 * t * t + 2 * E.a2 * t + E.a4) / u) * t)) ^ 2 + E.a1 * (((3 * t * t + 2 * E.a2 * t + E.a4) / u) ^ 2 + E.a1 * ((3 * t * t + 2 * E.a2 * t + E.a4) / u) + E.a3 - 2 * t) * (((3 * t * t + 2 * E.a2 * t + E.a4) / u) * (((3 * t * t + 2 * E.a2 * t + E.a4) / u) ^ 2 + E.a1 * ((3 * t * t + 2 * E.a2 * t + E.a4) / u) + E.a3 - 2 * t) + (s - ((3 * t * t + 2 * E.a2 * t + E.a4) / u) * t)) + E.a3 * (((3 * t * t + 2 * E.a2 * t + E.a4) / u) * (((3 * t * t + 2 * E.a2 * t + E.a4) / u) ^ 2 + E.a1 * ((3 * t * t + 2 * E.a2 * t + E.a4) / u) + E.a3 - 2 * t) + (s - ((3 * t * t + 2 * E.a2 * t + E.a4) / u) * t)) =
-  (((3 * t * t + 2 * E.a2 * t + E.a4) / u) ^ 2 + E.a1 * ((3 * t * t + 2 * E.a2 * t + E.a4) / u) + E.a3 - 2 * t) ^ 3 + E.a2 * (((3 * t * t + 2 * E.a2 * t + E.a4) / u) ^ 2 + E.a1 * ((3 * t * t + 2 * E.a2 * t + E.a4) / u) + E.a3 - 2 * t) ^ 2 + E.a4 * (((3 * t * t + 2 * E.a2 * t + E.a4) / u) ^ 2 + E.a1 * ((3 * t * t + 2 * E.a2 * t + E.a4) / u) + E.a3 - 2 * t) + E.a6
-    ,
-    simp only [pow_two, pow_three],
-    field_simp [h'], -- I think this tactic is extremely wayward with the denominators here?
-    -- it's also a shame `u` got unfolded, it's the only thing we ever divide by
-    -- we now need to use h₁
+    suffices : (l * t₃ - l * t + s)^2 + E.a1 * t₃ * (l * t₃ - l * t + s) + E.a3 * (l * t₃ - l * t + s)
+      = t₃ ^ 3 + E.a2 * t₃ ^ 2 + E.a4 * t₃ + E.a6,
+    {
+      rw ←this,
+      ring,
+    },
+    apply eq.symm,
     rw ← sub_eq_zero,
-    -- next job: divide LHS of current `<huge>=0` goal by `(s ^ 2 + E.a1 * t * s + E.a3 * s - (t ^ 3 + E.a2 * t ^ 2 + E.a4 * t + E.a6)) `
-    -- in a computer algebra package; it should divide exactly! Say the quotient is q.
-    let q := s + 37*t, -- probably not right but I don't have a computer algebra package which can do this
-    suffices : (s ^ 2 + E.a1 * t * s + E.a3 * s - (t ^ 3 + E.a2 * t ^ 2 + E.a4 * t + E.a6)) * q = 0,
-    { rw ← this,
-      sorry }, -- will be `ring` when we've got `q` right -- if `ring` can handle it
-    rw [h₁, sub_self, zero_mul],
+    rw show t₃ ^ 3 + E.a2 * t₃ ^ 2 + E.a4 * t₃ + E.a6 -
+    ((l * t₃ - l * t + s) ^ 2 + E.a1 * t₃ * (l * t₃ - l * t + s) + E.a3 * (l * t₃ - l * t + s)) =
+    (t₃ - E.a1*l - l^2 + E.a2 + 2*t)*(t₃-t)^2 +
+    (-E.a1*t*l + 2*E.a2*t + 3*t^2 - E.a1*s - E.a3*l - 2*s*l + E.a4)*t₃
+    + E.a1*t^2*l - E.a2*t^2 - 2*t^3 + E.a3*t*l + 2*t*s*l - E.a3*s - s^2 + E.a6, by ring,
+    rw show t₃ - E.a1 * l - l ^ 2 + E.a2 + 2 * t = 0, by {simp [t₃], ring},
+    rw show s^2 = t ^ 3 + E.a2 * t ^ 2 + E.a4 * t + E.a6 - E.a1 * t * s - E.a3 * s,
+      by {rw ←h₂, ring},
+    have h2sl : 2*s*l = 3 * t * t + 2 * E.a2 * t + E.a4 - E.a1 * s - E.a1 * t*l + - E.a3*l,
+    {
+      field_simp [h'],
+      ring,
+    },
+    norm_num,
+    rw show -(E.a1 * t * l) + 2 * E.a2 * t + 3 * t ^ 2 - E.a1 * s - E.a3 * l - 2 * s * l + E.a4 = 0,
+      by {simp [h2sl], ring},
+    field_simp [h2sl],
+    ring,
   end
 else let l :=(s₁-s₂)/(t₁-t₂) in
-     let m := (s₁*t₂+s₂*t₁)/(t₁-t₂) in
-     let t₃ :=l*l+E.a1*l+E.a3-t₁-t₂ in
-     let s₃ := l*t₃+m in
-     -(some t₃ s₃ sorry) -- level 2; add
+     let m :=  s₁ - l * t₁ in
+     let t₃ :=l*l+E.a1*l-E.a2-t₁-t₂ in
+     -(some t₃ (l*t₃+m)
+     begin
+       replace h := sub_ne_zero.mpr h,
+       apply eq.symm,
+       rw ← sub_eq_zero,
+       have hm : m = s₁ - l * t₁, by tauto,
+       suffices : (t₃ ^ 3 + E.a2 * t₃ ^ 2 + E.a4 * t₃ + E.a6
+       - ((l * t₃ + m) ^ 2 + E.a1 * t₃ * (l * t₃ + m) + E.a3 * (l * t₃ + m)))
+       * (t₁-t₂) = 0, by { rw mul_eq_zero at this, tauto,},
+       rw show (t₃ ^ 3 + E.a2 * t₃ ^ 2 + E.a4 * t₃ + E.a6 -
+       ((l * t₃ + m) ^ 2 + E.a1 * t₃ * (l * t₃ + m) + E.a3 * (l * t₃ + m)))*(t₁-t₂) =
+       (t₃ - E.a1*l - l^2 + E.a2 + t₁ + t₂)*(t₃-t₁)*(t₃-t₂)*(t₁-t₂) +
+       (t₃-t₁) * ( (l*(t₂-t₁) + s₁-s₂)*(E.a1*t₂ - t₁*l + t₂*l + E.a3 + s₁ + s₂) +
+        (s₂ ^ 2 + E.a1 * t₂ * s₂ + E.a3 * s₂ -
+       t₂ ^ 3 - E.a2 * t₂ ^ 2 - E.a4 * t₂ - E.a6)
+       - (s₁ ^ 2 + E.a1 * t₁ * s₁ + E.a3 * s₁ - t₁ ^ 3 - E.a2 * t₁ ^ 2 - E.a4 * t₁ - E.a6) ) -
+        (t₁-t₂)*(s₁ ^ 2 + E.a1 * t₁ * s₁ + E.a3 * s₁ - t₁ ^ 3 - E.a2 * t₁ ^ 2 - E.a4 * t₁ - E.a6),
+      {
+        rw hm,
+        ring,
+      },
+      rw show (t₃ - E.a1 * l - l ^ 2 + E.a2 + t₁ + t₂) = 0,
+      {
+        simp [t₃],
+        ring,
+      },
+      rw show s₁ ^ 2 + E.a1 * t₁ * s₁ + E.a3 * s₁ - t₁ ^ 3 - E.a2 * t₁ ^ 2 - E.a4 * t₁ - E.a6 = 0,
+        by {rw h₁, ring},
+      rw show s₂ ^ 2 + E.a1 * t₂ * s₂ + E.a3 * s₂ - t₂ ^ 3 - E.a2 * t₂ ^ 2 - E.a4 * t₂ - E.a6 = 0,
+        by {rw h₂, ring},
+      norm_num,
+      right,left,
+      field_simp [h],
+      ring,
+     end
+     ) -- level 2; add
 
 instance : has_add (points E) := ⟨EllipticCurve.add⟩
 
 @[simp] lemma tell_simplifier_to_use_numerals : (zero : points E) = 0 := rfl
 @[simp] lemma add_zero (P : points E) : P + 0 = P := by {cases P; refl }
 @[simp] lemma zero_add (P : points E) : 0 + P = P := by {cases P; refl }
+
+
+
 
 lemma add_assoc : ∀ {P Q R : points E}, P + Q + R = P + (Q + R)
 | zero           zero           zero           := rfl
