@@ -35,6 +35,29 @@ inductive points (E : EllipticCurve K)
 
 open points
 
+def points.x {E : EllipticCurve K} : points E → option K
+| zero := none -- garbage
+| (some x y h) := x
+
+def points.y {E : EllipticCurve K} : points E → option K
+| zero := none -- garbage
+| (some x y h) := y
+
+def points.xy {E : EllipticCurve K} : points E → option (K × K)
+| zero := none -- garbage
+| (some x y h) := some ⟨x, y⟩
+
+@[ext]
+lemma points_eq {E : EllipticCurve K} (P Q : points E) (hx : P.x = Q.x) (hy : P.y = Q.y) : P = Q :=
+begin
+  rcases P, rcases Q, refl, tauto,
+  rcases Q, tauto,
+  cases hx,
+  cases hy,
+  tauto,
+end
+
+
 variable {E}
 
 -- use `0` to mean `zero`
@@ -119,12 +142,6 @@ compute `s₃` is that it's equal to `lt₃+m` where
 
 lemma pow_three {M : Type*} [monoid M] (m : M) : m^3=m*m*m := by {rw [pow_succ, pow_succ, pow_one, mul_assoc] }
 
-example (a b c : K) (h : b ≠ 0) (h0 : a * b = 0) : a = 0 :=
-begin
-  rw mul_eq_zero at h0,
-  tauto,
-end
-
 protected def add : points E → points E → points E
 | zero           zero           := zero
 | zero           (some x y h)   := some x y h
@@ -149,70 +166,39 @@ if h : (t₁ = t₂) then
     subst hs,
     rename s₁ s,
     rw ← two_mul at h', -- s+s -> 2s because that's the denominator.
-    change 2 * s + E.a1 * t + E.a3 ≠ 0 at h',
-    suffices : (l * t₃ - l * t + s)^2 + E.a1 * t₃ * (l * t₃ - l * t + s) + E.a3 * (l * t₃ - l * t + s)
-      = t₃ ^ 3 + E.a2 * t₃ ^ 2 + E.a4 * t₃ + E.a6,
-    {
-      rw ←this,
-      ring,
-    },
-    apply eq.symm,
-    rw ← sub_eq_zero,
-    rw show t₃ ^ 3 + E.a2 * t₃ ^ 2 + E.a4 * t₃ + E.a6 -
-    ((l * t₃ - l * t + s) ^ 2 + E.a1 * t₃ * (l * t₃ - l * t + s) + E.a3 * (l * t₃ - l * t + s)) =
-    (t₃ - E.a1*l - l^2 + E.a2 + 2*t)*(t₃-t)^2 +
+    have h₃ : t₃ - E.a1 * l - l ^ 2 + E.a2 + 2 * t = 0, by {simp [t₃], ring},
+    replace h₂ : s^2 = t ^ 3 + E.a2 * t ^ 2 + E.a4 * t + E.a6 - E.a1 * t * s - E.a3 * s,
+      by {simp [←h₂], ring},
+    set w := l * t₃ - l * t + s with hw,
+    suffices : t₃ ^ 3 + E.a2 * t₃ ^ 2 + E.a4 * t₃ + E.a6 = w^2 + E.a1 * t₃ * w + E.a3 * w,
+      by {rw [this, hw], ring},
+    suffices : (t₃ - E.a1*l - l^2 + E.a2 + 2*t)*(t₃-t)^2 +
     (-E.a1*t*l + 2*E.a2*t + 3*t^2 - E.a1*s - E.a3*l - 2*s*l + E.a4)*t₃
-    + E.a1*t^2*l - E.a2*t^2 - 2*t^3 + E.a3*t*l + 2*t*s*l - E.a3*s - s^2 + E.a6, by ring,
-    rw show t₃ - E.a1 * l - l ^ 2 + E.a2 + 2 * t = 0, by {simp [t₃], ring},
-    rw show s^2 = t ^ 3 + E.a2 * t ^ 2 + E.a4 * t + E.a6 - E.a1 * t * s - E.a3 * s,
-      by {rw ←h₂, ring},
-    have h2sl : 2*s*l = 3 * t * t + 2 * E.a2 * t + E.a4 - E.a1 * s - E.a1 * t*l + - E.a3*l,
-    {
-      field_simp [h'],
-      ring,
-    },
-    norm_num,
-    rw show -(E.a1 * t * l) + 2 * E.a2 * t + 3 * t ^ 2 - E.a1 * s - E.a3 * l - 2 * s * l + E.a4 = 0,
-      by {simp [h2sl], ring},
-    field_simp [h2sl],
-    ring,
+    + E.a1*t^2*l - E.a2*t^2 - 2*t^3 + E.a3*t*l + 2*t*s*l - E.a3*s - s^2 + E.a6 = 0,
+      by {rw [← sub_eq_zero, ←this, hw], ring},
+    rw [h₃, h₂],
+    field_simp [h'], ring,
   end
 else let l :=(s₁-s₂)/(t₁-t₂) in
      let m :=  s₁ - l * t₁ in
      let t₃ :=l*l+E.a1*l-E.a2-t₁-t₂ in
      -(some t₃ (l*t₃+m)
      begin
+       have h₃ : t₃ = l*l+E.a1*l-E.a2-t₁-t₂ := rfl,
        replace h := sub_ne_zero.mpr h,
        apply eq.symm,
        rw ← sub_eq_zero,
        have hm : m = s₁ - l * t₁, by tauto,
-       suffices : (t₃ ^ 3 + E.a2 * t₃ ^ 2 + E.a4 * t₃ + E.a6
-       - ((l * t₃ + m) ^ 2 + E.a1 * t₃ * (l * t₃ + m) + E.a3 * (l * t₃ + m)))
-       * (t₁-t₂) = 0, by { rw mul_eq_zero at this, tauto,},
-       rw show (t₃ ^ 3 + E.a2 * t₃ ^ 2 + E.a4 * t₃ + E.a6 -
-       ((l * t₃ + m) ^ 2 + E.a1 * t₃ * (l * t₃ + m) + E.a3 * (l * t₃ + m)))*(t₁-t₂) =
-       (t₃ - E.a1*l - l^2 + E.a2 + t₁ + t₂)*(t₃-t₁)*(t₃-t₂)*(t₁-t₂) +
-       (t₃-t₁) * ( (l*(t₂-t₁) + s₁-s₂)*(E.a1*t₂ - t₁*l + t₂*l + E.a3 + s₁ + s₂) +
-        (s₂ ^ 2 + E.a1 * t₂ * s₂ + E.a3 * s₂ -
-       t₂ ^ 3 - E.a2 * t₂ ^ 2 - E.a4 * t₂ - E.a6)
-       - (s₁ ^ 2 + E.a1 * t₁ * s₁ + E.a3 * s₁ - t₁ ^ 3 - E.a2 * t₁ ^ 2 - E.a4 * t₁ - E.a6) ) -
-        (t₁-t₂)*(s₁ ^ 2 + E.a1 * t₁ * s₁ + E.a3 * s₁ - t₁ ^ 3 - E.a2 * t₁ ^ 2 - E.a4 * t₁ - E.a6),
-      {
-        rw hm,
-        ring,
-      },
-      rw show (t₃ - E.a1 * l - l ^ 2 + E.a2 + t₁ + t₂) = 0,
-      {
-        simp [t₃],
-        ring,
-      },
-      rw show s₁ ^ 2 + E.a1 * t₁ * s₁ + E.a3 * s₁ - t₁ ^ 3 - E.a2 * t₁ ^ 2 - E.a4 * t₁ - E.a6 = 0,
-        by {rw h₁, ring},
-      rw show s₂ ^ 2 + E.a1 * t₂ * s₂ + E.a3 * s₂ - t₂ ^ 3 - E.a2 * t₂ ^ 2 - E.a4 * t₂ - E.a6 = 0,
-        by {rw h₂, ring},
-      norm_num,
-      right,left,
-      field_simp [h],
+       have hl : l * (t₂ - t₁) = s₂ - s₁, by {field_simp [h], ring},
+       let eq₁ := s₁ ^ 2 + E.a1 * t₁ * s₁ + E.a3 * s₁ - t₁ ^ 3 - E.a2 * t₁ ^ 2 - E.a4 * t₁ - E.a6,
+       let eq₂ := s₂ ^ 2 + E.a1 * t₂ * s₂ + E.a3 * s₂ - t₂ ^ 3 - E.a2 * t₂ ^ 2 - E.a4 * t₂ - E.a6,
+       replace h₁ : eq₁ = 0, by { simp [eq₁, h₁], ring },
+       replace h₂ : eq₂ = 0, by { simp [eq₂, h₂], ring },
+       apply (is_unit.mul_left_eq_zero (is_unit.mk0 _ h)).mp,
+       suffices : (t₃ - E.a1*l - l^2 + E.a2 + t₁ + t₂)*(t₃-t₁)*(t₃-t₂)*(t₁-t₂) +
+       (t₃-t₁)*((l*(t₂-t₁) + s₁-s₂)*(E.a1*t₂ + E.a3 + l*(t₂-t₁)+s₁+s₂) + eq₂ - eq₁)-(t₁-t₂)*eq₁ = 0,
+        by { simp [←this, eq₁, eq₂, hm], ring },
+      simp  only [h₃, h₁, h₂, add_zero, zero_mul, sub_zero, zero_add, mul_zero, mul_eq_zero, hl],
       ring,
      end
      ) -- level 2; add
@@ -224,8 +210,6 @@ instance : has_add (points E) := ⟨EllipticCurve.add⟩
 @[simp] lemma zero_add (P : points E) : 0 + P = P := by {cases P; refl }
 
 
-
-
 lemma add_assoc : ∀ {P Q R : points E}, P + Q + R = P + (Q + R)
 | zero           zero           zero           := rfl
 | (some a b hab) zero           zero           := rfl
@@ -234,6 +218,9 @@ lemma add_assoc : ∀ {P Q R : points E}, P + Q + R = P + (Q + R)
 | (some a b hab) (some c d hcd) zero           := by simp
 | (some a b hab) zero           (some e f hef) := rfl
 | zero           (some c d hcd) (some e f hef) := by simp
-| (some a b hab) (some c d hcd) (some e f hef) := sorry -- boss level; add_assoc
+| (some a b hab) (some c d hcd) (some e f hef) :=
+begin
+  sorry
+end -- boss level; add_assoc
 
 end EllipticCurve
