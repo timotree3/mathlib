@@ -336,7 +336,7 @@ def trivialization.continuous_linear_map
   (e₁.continuous_linear_map σ e₂).base_set = e₁.base_set ∩ e₂.base_set :=
 rfl
 
-@[simp] lemma trivialization.continuous_linear_map_apply
+lemma trivialization.continuous_linear_map_apply
   {e₁ : trivialization 𝕜₁ F₁ E₁} {e₂ : trivialization 𝕜₂ F₂ E₂} {x : B} (hx₁ : x ∈ e₁.base_set)
   (hx₂ : x ∈ e₂.base_set) (L : E₁ x →SL[σ] E₂ x) :
   e₁.continuous_linear_map σ e₂ ⟨x, L⟩
@@ -344,7 +344,7 @@ rfl
       ((e₁.continuous_linear_equiv_at x hx₁).symm : F₁ →L[𝕜₁] E₁ x))⟩ :=
 pretrivialization.continuous_linear_map_apply σ hx₁ hx₂ L
 
-@[simp] lemma trivialization.continuous_linear_equiv_at_continuous_linear_map
+lemma trivialization.continuous_linear_equiv_at_continuous_linear_map
   {e₁ : trivialization 𝕜₁ F₁ E₁} {e₂ : trivialization 𝕜₂ F₂ E₂} {x : B} (hx₁ : x ∈ e₁.base_set)
   (hx₂ : x ∈ e₂.base_set)  :
   ((e₁.continuous_linear_map σ e₂).continuous_linear_equiv_at x ⟨hx₁, hx₂⟩).to_linear_equiv
