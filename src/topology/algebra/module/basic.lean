@@ -1563,6 +1563,7 @@ instance automorphism_group : group (M₁ ≃L[R₁] M₁) :=
   one_mul      := λ f, by {ext, refl},
   mul_left_inv := λ f, by {ext, exact f.left_inv x} }
 
+section
 variables {M₁} {R₄ : Type*} [semiring R₄] [module R₄ M₄]
   {σ₃₄ : R₃ →+* R₄} {σ₄₃ : R₄ →+* R₃} [ring_hom_inv_pair σ₃₄ σ₄₃] [ring_hom_inv_pair σ₄₃ σ₃₄]
   {σ₂₄ : R₂ →+* R₄} {σ₁₄ : R₁ →+* R₄}
@@ -1571,6 +1572,7 @@ variables {M₁} {R₄ : Type*} [semiring R₄] [module R₄ M₄]
 
 include σ₂₁ σ₃₄ σ₂₃ σ₂₄ σ₁₃
 
+variables (σ₂₃)
 /-- A pair of continuous (semi)linear equivalences generates an equivalence between the spaces of
 continuous linear maps. -/
 @[simps] def arrow_congr_equiv (e₁₂ : M₁ ≃SL[σ₁₂] M₂) (e₄₃ : M₄ ≃SL[σ₄₃] M₃) :
@@ -1581,8 +1583,40 @@ continuous linear maps. -/
     by simp only [continuous_linear_map.comp_apply, symm_apply_apply, coe_coe],
   right_inv := λ f, continuous_linear_map.ext $ λ x,
     by simp only [continuous_linear_map.comp_apply, apply_symm_apply, coe_coe] }
+variables {σ₂₃}
+end
 
 end add_comm_monoid
+
+section add_comm_monoid_comm_semiring
+variables {R₁ : Type*} {R₂ : Type*} {R₃ : Type*} {R₄ : Type*}
+[semiring R₁] [semiring R₂] [comm_semiring R₃] [comm_semiring R₄]
+{σ₁₂ : R₁ →+* R₂} {σ₂₁ : R₂ →+* R₁} [ring_hom_inv_pair σ₁₂ σ₂₁] [ring_hom_inv_pair σ₂₁ σ₁₂]
+{σ₂₃ : R₂ →+* R₃} {σ₃₂ : R₃ →+* R₂} [ring_hom_inv_pair σ₂₃ σ₃₂] [ring_hom_inv_pair σ₃₂ σ₂₃]
+{σ₁₃ : R₁ →+* R₃} {σ₃₁ : R₃ →+* R₁} [ring_hom_inv_pair σ₁₃ σ₃₁] [ring_hom_inv_pair σ₃₁ σ₁₃]
+{σ₃₄ : R₃ →+* R₄} {σ₄₃ : R₄ →+* R₃} [ring_hom_inv_pair σ₃₄ σ₄₃] [ring_hom_inv_pair σ₄₃ σ₃₄]
+{σ₂₄ : R₂ →+* R₄} {σ₁₄ : R₁ →+* R₄}
+[ring_hom_comp_triple σ₁₂ σ₂₃ σ₁₃] [ring_hom_comp_triple σ₃₂ σ₂₁ σ₃₁]
+[ring_hom_comp_triple σ₂₁ σ₁₄ σ₂₄] [ring_hom_comp_triple σ₂₄ σ₄₃ σ₂₃]
+[ring_hom_comp_triple σ₁₃ σ₃₄ σ₁₄]
+{M₁ : Type*} [topological_space M₁] [add_comm_monoid M₁]
+{M₂ : Type*} [topological_space M₂] [add_comm_monoid M₂]
+{M₃ : Type*} [topological_space M₃] [add_comm_monoid M₃]
+{M₄ : Type*} [topological_space M₄] [add_comm_monoid M₄]
+[module R₁ M₁] [module R₂ M₂] [module R₃ M₃] [module R₄ M₄]
+[has_continuous_add M₄] [topological_space R₄] [has_continuous_smul R₄ M₄]
+[has_continuous_add M₃] [topological_space R₃] [has_continuous_smul R₃ M₃]
+
+include σ₂₁ σ₃₄ σ₂₃ σ₂₄ σ₁₃ σ₄₃
+variables (σ₂₃)
+
+@[simps] def arrow_congr_linear_equiv (e₁₂ : M₁ ≃SL[σ₁₂] M₂) (e₄₃ : M₄ ≃SL[σ₄₃] M₃) :
+  (M₁ →SL[σ₁₄] M₄) ≃ₛₗ[σ₄₃] (M₂ →SL[σ₂₃] M₃) :=
+{ map_add' := λ f₁ f₂, by simp,
+  map_smul' := λ c f, by simp,
+  .. arrow_congr_equiv σ₂₃ e₁₂ e₄₃ }
+
+end add_comm_monoid_comm_semiring
 
 section add_comm_group
 
