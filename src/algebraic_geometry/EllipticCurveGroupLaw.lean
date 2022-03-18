@@ -140,6 +140,44 @@ compute `s₃` is that it's equal to `lt₃+m` where
 
 -/
 
+namespace tactic.interactive
+
+meta def show_nonzero := `[
+  apply_rules [
+    mul_ne_zero,
+    sub_ne_zero.2,
+    ne.symm,
+    ne_of_gt,
+    ne_of_lt
+    ],
+  all_goals {try {norm_num}}
+]
+
+meta def clear_denoms := `[
+  try {rw div_eq_div_iff},
+  try {rw eq_div_iff},
+  try {symmetry, rw eq_div_iff},
+  try { ring_exp },
+  all_goals {show_nonzero}
+]
+
+meta def discrete_field := `[
+  try {field_simp},
+  try {clear_denoms},
+  try {ring_exp}
+]
+
+meta def ring_simp := `[
+  try {clear_denoms},
+  try {simp [*]},
+  try {field_simp},
+  try {ring}
+]
+
+end tactic.interactive
+
+open tactic.interactive
+
 lemma pow_three {M : Type*} [monoid M] (m : M) : m^3=m*m*m := by {rw [pow_succ, pow_succ, pow_one, mul_assoc] }
 
 protected def add : points E → points E → points E
@@ -166,17 +204,16 @@ if h : (t₁ = t₂) then
     subst hs,
     rename s₁ s,
     rw ← two_mul at h', -- s+s -> 2s because that's the denominator.
-    have h₃ : t₃ - E.a1 * l - l ^ 2 + E.a2 + 2 * t = 0, by {simp [t₃], ring},
-    replace h₂ : s^2 = t ^ 3 + E.a2 * t ^ 2 + E.a4 * t + E.a6 - E.a1 * t * s - E.a3 * s,
-      by {simp [←h₂], ring},
+    let z₃ := t₃ - E.a1 * l - l ^ 2 + E.a2 + 2 * t,
     set w := l * t₃ - l * t + s with hw,
     suffices : t₃ ^ 3 + E.a2 * t₃ ^ 2 + E.a4 * t₃ + E.a6 = w^2 + E.a1 * t₃ * w + E.a3 * w,
       by {rw [this, hw], ring},
-    suffices : (t₃ - E.a1*l - l^2 + E.a2 + 2*t)*(t₃-t)^2 +
-    (-E.a1*t*l + 2*E.a2*t + 3*t^2 - E.a1*s - E.a3*l - 2*s*l + E.a4)*t₃
+    suffices : z₃*(t₃-t)^2 + (3*t^2 + 2*E.a2*t + E.a4 - E.a1*(s+t*l) - E.a3*l - 2*s*l)*t₃
     + E.a1*t^2*l - E.a2*t^2 - 2*t^3 + E.a3*t*l + 2*t*s*l - E.a3*s - s^2 + E.a6 = 0,
-      by {rw [← sub_eq_zero, ←this, hw], ring},
-    rw [h₃, h₂],
+      by {simp only [z₃] at this, rw [← sub_eq_zero, ←this, hw], ring},
+    rw show z₃ = 0, by {simp [z₃, t₃], ring},
+    rw show s^2 = t ^ 3 + E.a2 * t ^ 2 + E.a4 * t + E.a6 - E.a1 * t * s - E.a3 * s,
+      by {simp [←h₂], ring},
     field_simp [h'], ring,
   end
 else let l :=(s₁-s₂)/(t₁-t₂) in
@@ -184,21 +221,20 @@ else let l :=(s₁-s₂)/(t₁-t₂) in
      let t₃ :=l*l+E.a1*l-E.a2-t₁-t₂ in
      -(some t₃ (l*t₃+m)
      begin
-       have h₃ : t₃ = l*l+E.a1*l-E.a2-t₁-t₂ := rfl,
        replace h := sub_ne_zero.mpr h,
        apply eq.symm,
        rw ← sub_eq_zero,
-       have hm : m = s₁ - l * t₁, by tauto,
-       have hl : l * (t₂ - t₁) = s₂ - s₁, by {field_simp [h], ring},
-       let eq₁ := s₁ ^ 2 + E.a1 * t₁ * s₁ + E.a3 * s₁ - t₁ ^ 3 - E.a2 * t₁ ^ 2 - E.a4 * t₁ - E.a6,
-       let eq₂ := s₂ ^ 2 + E.a1 * t₂ * s₂ + E.a3 * s₂ - t₂ ^ 3 - E.a2 * t₂ ^ 2 - E.a4 * t₂ - E.a6,
-       replace h₁ : eq₁ = 0, by { simp [eq₁, h₁], ring },
-       replace h₂ : eq₂ = 0, by { simp [eq₂, h₂], ring },
+       let z₁ := s₁ ^ 2 + E.a1 * t₁ * s₁ + E.a3 * s₁ - t₁ ^ 3 - E.a2 * t₁ ^ 2 - E.a4 * t₁ - E.a6,
+       let z₂ := s₂ ^ 2 + E.a1 * t₂ * s₂ + E.a3 * s₂ - t₂ ^ 3 - E.a2 * t₂ ^ 2 - E.a4 * t₂ - E.a6,
+       let z₃ := l * (t₂ - t₁) + s₁ - s₂,
        apply (is_unit.mul_left_eq_zero (is_unit.mk0 _ h)).mp,
        suffices : (t₃ - E.a1*l - l^2 + E.a2 + t₁ + t₂)*(t₃-t₁)*(t₃-t₂)*(t₁-t₂) +
-       (t₃-t₁)*((l*(t₂-t₁) + s₁-s₂)*(E.a1*t₂ + E.a3 + l*(t₂-t₁)+s₁+s₂) + eq₂ - eq₁)-(t₁-t₂)*eq₁ = 0,
-        by { simp [←this, eq₁, eq₂, hm], ring },
-      simp  only [h₃, h₁, h₂, add_zero, zero_mul, sub_zero, zero_add, mul_zero, mul_eq_zero, hl],
+       (t₃-t₁)*((E.a1*t₂ + E.a3 + l*(t₂-t₁)+s₁+s₂)*z₃ + z₂ - z₁)-(t₁-t₂)*z₁ = 0,
+       by { simp [←this, z₁, z₂, z₃, m], ring },
+      rw show z₁ = 0, by {simp [z₁, h₁], ring},
+      rw show z₂ = 0, by {simp [z₂, h₂], ring},
+      rw show z₃ = 0, by {simp [z₃], field_simp [h], ring},
+      simp only [t₃],
       ring,
      end
      ) -- level 2; add
