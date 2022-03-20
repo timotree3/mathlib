@@ -5,10 +5,32 @@ Authors: Heather Macbeth
 -/
 import analysis.normed_space.bounded_linear_maps
 import geometry.manifold.charted_space
+import topology.vector_bundle
 
-/-! # The groupoid of transition functions for `F`-vector bundles over `B` -/
+/-! # Topological vector bundles -/
 
-open set filter
+open set filter bundle topological_vector_bundle
+
+section
+
+variables (R : Type*) [semiring R] {B : Type*} [topological_space B]
+  (F : Type*) [topological_space F] [add_comm_monoid F] [module R F]
+  (E : B → Type*) [∀ x, add_comm_monoid (E x)] [∀ x, module R (E x)]
+  [∀ x : B, topological_space (E x)] [topological_space (total_space E)]
+  [topological_vector_bundle R F E]
+
+/-- A topological vector bundle over `B` with fibre model `F` is naturally a charted space modelled
+on `B × F`.  Not registered as an instance because of the metavariable `𝕜`. -/
+def topological_vector_bundle.to_charted_space : charted_space (B × F) (total_space E) :=
+{ atlas := (λ e : trivialization R F E, e.to_local_homeomorph) '' (trivialization_atlas R F E),
+  chart_at := λ x, (trivialization_at R F E (proj E x)).to_local_homeomorph,
+  mem_chart_source := λ x, begin
+    rw (trivialization_at R F E (proj E x)).source_eq,
+    exact mem_base_set_trivialization_at R F E (proj E x),
+  end,
+  chart_mem_atlas := λ x, ⟨_, trivialization_mem_atlas R F E (proj E x), rfl⟩ }
+
+end
 
 variables (𝕜 : Type*) [nondiscrete_normed_field 𝕜] (B : Type*) [topological_space B]
   (F : Type*) [normed_group F] [normed_space 𝕜 F] [complete_space F]
@@ -80,3 +102,15 @@ def continuous_transitions : structure_groupoid (B × F) :=
     { sorry },
     { sorry }
   end }
+
+variables {B}
+
+variables (E : B → Type*) [∀ x, add_comm_monoid (E x)] [∀ x, module 𝕜 (E x)]
+  [∀ x : B, topological_space (E x)] [topological_space (total_space E)]
+
+/-- A topological vector bundle is the former definition of a topological vector bundle, with the
+further property that the transition functions are continuous as maps from a subset of `B` into
+`F →L[𝕜] F` (with respect to the operator norm). -/
+class really_topological_vector_bundle extends topological_vector_bundle 𝕜 F E :=
+(nice : @has_groupoid _ _ (total_space E) _ (topological_vector_bundle.to_charted_space 𝕜 F E)
+  (continuous_transitions 𝕜 B F))
