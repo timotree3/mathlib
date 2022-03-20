@@ -122,9 +122,11 @@ def continuous_transitions : structure_groupoid (B × F) :=
   end }
 
 variables {B}
-
 variables (E : B → Type*) [∀ x, add_comm_monoid (E x)] [∀ x, module 𝕜 (E x)]
-  [∀ x : B, topological_space (E x)] [topological_space (total_space E)]
+
+section
+
+variables [∀ x : B, topological_space (E x)] [topological_space (total_space E)]
 
 /-- A topological vector bundle is the former definition of a topological vector bundle, with the
 further property that the transition functions are continuous as maps from a subset of `B` into
@@ -132,3 +134,63 @@ further property that the transition functions are continuous as maps from a sub
 class really_topological_vector_bundle extends topological_vector_bundle 𝕜 F E :=
 (nice : @has_groupoid _ _ (total_space E) _ (topological_vector_bundle.to_charted_space 𝕜 F E)
   (continuous_transitions 𝕜 B F))
+
+end
+
+section
+
+/-! ### Topological vector prebundle -/
+
+open topological_space
+
+/-- This structure permits to define a vector bundle when trivializations are given as local
+equivalences but there is not yet a topology on the total space. The total space is hence given a
+topology in such a way that there is a fiber bundle structure for which the local equivalences
+are also local homeomorphisms and hence vector bundle trivializations. -/
+@[nolint has_inhabited_instance]
+structure really_topological_vector_prebundle :=
+(pretrivialization_atlas : set (topological_vector_bundle.pretrivialization 𝕜 F E))
+(pretrivialization_at : B → topological_vector_bundle.pretrivialization 𝕜 F E)
+(mem_base_pretrivialization_at : ∀ x : B, x ∈ (pretrivialization_at x).base_set)
+(pretrivialization_mem_atlas : ∀ x : B, pretrivialization_at x ∈ pretrivialization_atlas)
+(continuous_coord_change : ∀ e e' ∈ pretrivialization_atlas, ∃ ε : B → (F ≃L[𝕜] F),
+  continuous_on (λ b, (ε b : F →L[𝕜] F)) (e.base_set ∩ e'.base_set) ∧
+  ∀ b ∈ e.base_set ∩ e'.base_set,
+    ∀ v : F, (e.to_local_equiv.symm.trans e'.to_local_equiv) (b, v) = (b, ε b v))
+
+namespace really_topological_vector_prebundle
+
+variables {𝕜 E F}
+
+/-- Natural identification of `really_topological_vector_prebundle` as a
+`topological_vector_prebundle`. -/
+def to_topological_vector_prebundle (a : really_topological_vector_prebundle 𝕜 F E) :
+  topological_vector_prebundle 𝕜 F E :=
+{ continuous_triv_change := λ e he e' he', begin
+    obtain ⟨ε, hε, heε⟩ := a.continuous_coord_change e he e' he',
+    have h_source : (e'.to_local_equiv.target ∩ (e'.to_local_equiv.symm) ⁻¹'
+      e.to_local_equiv.source) = (e.to_local_equiv.symm.trans e'.to_local_equiv).source,
+    { sorry },
+    have : continuous_on (λ p : B × F, (p.1, ε p.1 p.2))
+      (e'.to_local_equiv.target ∩ (e'.to_local_equiv.symm) ⁻¹' e.to_local_equiv.source),
+    { rw h_source,
+      sorry },
+    refine this.congr _,
+    rintros ⟨b, v⟩ h,
+    sorry,
+    -- simp at h,
+  end,
+  .. a }
+
+def to_really_topological_vector_bundle (a : really_topological_vector_prebundle 𝕜 F E) :
+  @really_topological_vector_bundle 𝕜 _ _ _ F _ _ _ E _ _
+    a.to_topological_vector_prebundle.fiber_topology
+    a.to_topological_vector_prebundle.total_space_topology :=
+{ nice := begin
+    sorry
+  end,
+  .. a.to_topological_vector_prebundle.to_topological_vector_bundle }
+
+end really_topological_vector_prebundle
+
+end
