@@ -50,7 +50,9 @@ def continuous_transitions_groupoid : structure_groupoid (B × F) :=
     { exact is_bounded_bilinear_map_comp.continuous.comp_continuous_on
         ((hε.mono (inter_subset_left s s')).prod (hε'.mono (inter_subset_right s s'))) },
     { rintros b ⟨hb, hb'⟩ v,
-      simp [heε b hb, heε' b hb'] },
+      have H : e (b, v) = _ := heε b hb _,
+      have H' : e' (b, ε b v) = _ := heε' b hb' _,
+      simp [H, H'] },
   end,
   symm' := λ e ⟨s, hes₁, hes₂, ε, hε, heε⟩, begin
     refine ⟨s, _, _, (λ b, (ε b).symm), _, _⟩,
@@ -70,7 +72,8 @@ def continuous_transitions_groupoid : structure_groupoid (B × F) :=
       { simp [hes₂, hb] },
       apply e.inj_on (e.map_target heb),
       { simp [hes₁, hb] },
-      simp [heε b hb, e.right_inv heb] }
+      have : e (b, (ε b).symm v) = _ := heε b hb _,
+      simp [e.right_inv heb, this] },
   end,
   id_mem' := begin
     refine ⟨univ, _, _, λ b, continuous_linear_equiv.refl 𝕜 F, _, _⟩,
