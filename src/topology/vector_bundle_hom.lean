@@ -4,7 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Heather Macbeth
 -/
 
-import topology.vector_bundle_redo
+import topology.vector_bundle
 
 /-! # The bundle of continuous linear maps between two vector bundles over the same base -/
 
@@ -207,20 +207,20 @@ variables [ring_hom_isometric σ] (F₁ : Type*) [normed_group F₁] [normed_spa
   (E₁ : B → Type*) [Π x, add_comm_monoid (E₁ x)] [Π x, module 𝕜₁ (E₁ x)]
   [Π x : B, topological_space (E₁ x)] [topological_space (total_space E₁)]
   [Π x, has_continuous_add (E₁ x)] [Π x, has_continuous_smul 𝕜₁ (E₁ x)]
-  [really_topological_vector_bundle 𝕜₁ F₁ E₁]
+  [topological_vector_bundle 𝕜₁ F₁ E₁]
 
 variables (F₂ : Type*) [normed_group F₂] [normed_space 𝕜₂ F₂] [complete_space F₂]
   (E₂ : B → Type*) [Π x, add_comm_monoid (E₂ x)] [Π x, module 𝕜₂ (E₂ x)]
   [Π x : B, topological_space (E₂ x)] [topological_space (total_space E₂)]
   [Π x, has_continuous_add (E₂ x)] [Π x, has_continuous_smul 𝕜₂ (E₂ x)]
-  [really_topological_vector_bundle 𝕜₂ F₂ E₂]
+  [topological_vector_bundle 𝕜₂ F₂ E₂]
 
 /-- The continuous `σ`-semilinear maps between two topological vector bundles form a
-`really_topological_vector_prebundle` (this is an auxiliary construction for the
-`really_topological_vector_bundle` instance, in which the pretrivializations are collated but no
+`topological_vector_prebundle` (this is an auxiliary construction for the
+`topological_vector_bundle` instance, in which the pretrivializations are collated but no
 topology on the total space is yet provided). -/
-def _root_.vector_bundle_continuous_linear_map.really_topological_vector_prebundle :
-  really_topological_vector_prebundle 𝕜₂ (F₁ →SL[σ] F₂)
+def _root_.vector_bundle_continuous_linear_map.topological_vector_prebundle :
+  topological_vector_prebundle 𝕜₂ (F₁ →SL[σ] F₂)
   (vector_bundle_continuous_linear_map σ F₁ E₁ F₂ E₂) :=
 { pretrivialization_atlas := {f | ∃ (e₁ ∈ trivialization_atlas 𝕜₁ F₁ E₁)
     (e₂ ∈ trivialization_atlas 𝕜₂ F₂ E₂), f = pretrivialization.continuous_linear_map σ e₁ e₂ },
@@ -233,9 +233,9 @@ def _root_.vector_bundle_continuous_linear_map.really_topological_vector_prebund
   continuous_coord_change := begin
     rintros _ ⟨e₁, he₁, e₂, he₂, rfl⟩ _ ⟨e₁', he₁', e₂', he₂', rfl⟩,
     obtain ⟨s₁, hs₁, hs₁', ε₁, hε₁, heε₁⟩ :=
-      really_topological_vector_bundle.continuous_coord_change e₁ he₁ e₁' he₁',
+      topological_vector_bundle.continuous_coord_change e₁ he₁ e₁' he₁',
     obtain ⟨s₂, hs₂, hs₂', ε₂, hε₂, heε₂⟩ :=
-      really_topological_vector_bundle.continuous_coord_change e₂ he₂ e₂' he₂',
+      topological_vector_bundle.continuous_coord_change e₂ he₂ e₂' he₂',
     let Φ₁ : (F₁ →L[𝕜₁] F₁) →SL[σ] (F₁ →SL[σ] F₂) →L[𝕜₂] (F₁ →SL[σ] F₂),
     { apply continuous_linear_map.flip,
       exact (continuous_linear_map.compSL F₁ F₁ F₂ (ring_hom.id 𝕜₁) σ) },
@@ -254,21 +254,21 @@ def _root_.vector_bundle_continuous_linear_map.really_topological_vector_prebund
 vector bundles over the same base.  The topology we put on the continuous
 `σ`-semilinear_maps is the topology coming from the operator norm on maps from `F₁` to `F₂`. -/
 instance (x : B) : topological_space (vector_bundle_continuous_linear_map σ F₁ E₁ F₂ E₂ x) :=
-(vector_bundle_continuous_linear_map.really_topological_vector_prebundle
+(vector_bundle_continuous_linear_map.topological_vector_prebundle
   σ F₁ E₁ F₂ E₂).fiber_topology x
 
 /-- Topology on the total space of the continuous `σ`-semilinear_maps between two vector
 bundles over the same base. -/
 instance : topological_space (total_space (vector_bundle_continuous_linear_map σ F₁ E₁ F₂ E₂)) :=
-(vector_bundle_continuous_linear_map.really_topological_vector_prebundle
+(vector_bundle_continuous_linear_map.topological_vector_prebundle
   σ F₁ E₁ F₂ E₂).total_space_topology
 
 /-- The continuous `σ`-semilinear_maps between two vector bundles form a vector bundle. -/
-instance vector_bundle_continuous_linear_map.really_topological_vector_bundle :
-  really_topological_vector_bundle 𝕜₂ (F₁ →SL[σ] F₂)
+instance vector_bundle_continuous_linear_map.topological_vector_bundle :
+  topological_vector_bundle 𝕜₂ (F₁ →SL[σ] F₂)
     (vector_bundle_continuous_linear_map σ F₁ E₁ F₂ E₂) :=
-(vector_bundle_continuous_linear_map.really_topological_vector_prebundle
-  σ F₁ E₁ F₂ E₂).to_really_topological_vector_bundle
+(vector_bundle_continuous_linear_map.topological_vector_prebundle
+  σ F₁ E₁ F₂ E₂).to_topological_vector_bundle
 
 variables {F₁ E₁ F₂ E₂}
 
@@ -279,7 +279,7 @@ def trivialization.continuous_linear_map
   {e₁ : trivialization 𝕜₁ F₁ E₁} (he₁ : e₁ ∈ trivialization_atlas 𝕜₁ F₁ E₁)
   {e₂ : trivialization 𝕜₂ F₂ E₂} (he₂ : e₂ ∈ trivialization_atlas 𝕜₂ F₂ E₂) :
   trivialization 𝕜₂ (F₁ →SL[σ] F₂) (vector_bundle_continuous_linear_map σ F₁ E₁ F₂ E₂) :=
-(vector_bundle_continuous_linear_map.really_topological_vector_prebundle
+(vector_bundle_continuous_linear_map.topological_vector_prebundle
   σ F₁ E₁ F₂ E₂).trivialization_of_mem_pretrivialization_atlas
   ⟨e₁, he₁, e₂, he₂, rfl⟩
 

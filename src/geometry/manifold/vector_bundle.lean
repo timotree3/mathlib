@@ -4,7 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Heather Macbeth
 -/
 import geometry.manifold.charted_space
-import topology.vector_bundle_redo
+import topology.vector_bundle
 
 /-! # Groupoid interpretation of some properties of topological vector bundles -/
 
@@ -12,29 +12,24 @@ noncomputable theory
 
 open set filter bundle topological_vector_bundle
 
-section
-
-variables (R : Type*) [semiring R] {B : Type*} [topological_space B]
-  (F : Type*) [topological_space F] [add_comm_monoid F] [module R F]
-  (E : B → Type*) [∀ x, add_comm_monoid (E x)] [∀ x, module R (E x)]
+variables (𝕜 : Type*) [nondiscrete_normed_field 𝕜] {B : Type*} [topological_space B]
+  (F : Type*) [normed_group F] [normed_space 𝕜 F] [complete_space F]
+  (E : B → Type*) [∀ x, add_comm_monoid (E x)] [∀ x, module 𝕜 (E x)]
   [∀ x : B, topological_space (E x)] [topological_space (total_space E)]
-  [topological_vector_bundle R F E]
+  [topological_vector_bundle 𝕜 F E]
 
 /-- A topological vector bundle over `B` with fibre model `F` is naturally a charted space modelled
 on `B × F`.  Not registered as an instance because of the metavariable `𝕜`. -/
 def topological_vector_bundle.to_charted_space : charted_space (B × F) (total_space E) :=
-{ atlas := (λ e : trivialization R F E, e.to_local_homeomorph) '' (trivialization_atlas R F E),
-  chart_at := λ x, (trivialization_at R F E (proj E x)).to_local_homeomorph,
+{ atlas := (λ e : trivialization 𝕜 F E, e.to_local_homeomorph) '' (trivialization_atlas 𝕜 F E),
+  chart_at := λ x, (trivialization_at 𝕜 F E (proj E x)).to_local_homeomorph,
   mem_chart_source := λ x, begin
-    rw (trivialization_at R F E (proj E x)).source_eq,
-    exact mem_base_set_trivialization_at R F E (proj E x),
+    rw (trivialization_at 𝕜 F E (proj E x)).source_eq,
+    exact mem_base_set_trivialization_at 𝕜 F E (proj E x),
   end,
-  chart_mem_atlas := λ x, ⟨_, trivialization_mem_atlas R F E (proj E x), rfl⟩ }
+  chart_mem_atlas := λ x, ⟨_, trivialization_mem_atlas 𝕜 F E (proj E x), rfl⟩ }
 
-end
-
-variables (𝕜 : Type*) [nondiscrete_normed_field 𝕜] (B : Type*) [topological_space B]
-  (F : Type*) [normed_group F] [normed_space 𝕜 F] [complete_space F]
+variables (B)
 
 /-- The groupoid of valid transition functions for a topological vector bundle over `B` modelled on
 a normed space `F`: a transition function must be a local homeomorphism of `B × F` with source and
@@ -126,12 +121,11 @@ def continuous_transitions_groupoid : structure_groupoid (B × F) :=
   end }
 
 variables {B}
-variables (E : B → Type*) [∀ x, add_comm_monoid (E x)] [∀ x, module 𝕜 (E x)]
 
 section
 
 variables [∀ x : B, topological_space (E x)] [topological_space (total_space E)]
-  [really_topological_vector_bundle 𝕜 F E]
+  [topological_vector_bundle 𝕜 F E]
 
 /-- A topological vector bundle has co-ordinate changes in the `continuous_transitions_groupoid`. -/
 lemma really_topological_vector_bundle.has_groupoid :
@@ -139,7 +133,7 @@ lemma really_topological_vector_bundle.has_groupoid :
     (continuous_transitions_groupoid 𝕜 B F) :=
 { compatible := begin
     rintros _ _ ⟨e, he, rfl⟩ ⟨e', he', rfl⟩,
-    exact really_topological_vector_bundle.continuous_coord_change _ he _ he',
+    exact topological_vector_bundle.continuous_coord_change _ he _ he',
   end }
 
 end
