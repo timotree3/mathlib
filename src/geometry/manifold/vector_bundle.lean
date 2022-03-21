@@ -42,7 +42,7 @@ target both `s ×ˢ univ`, which on this set is of the form `λ (b, v), (b, ε b
 map `ε` from `s` to `F ≃L[𝕜] F`.  Here continuity is with respect to the operator norm on
 `F ≃L[𝕜] F`. -/
 def continuous_transitions_groupoid : structure_groupoid (B × F) :=
-{ members := {e | continuous_transitions 𝕜 B F e},
+{ members := {e | continuous_transitions 𝕜 B F e.to_local_equiv},
   trans' := λ e e' ⟨s, hes₁, hes₂, ε, hε, heε⟩ ⟨s', hes₁', hes₂', ε', hε', heε'⟩, begin
     refine ⟨s ∩ s', _, _, (λ b, (ε b).trans (ε' b)), _,  _⟩,
     { sorry },
@@ -136,7 +136,7 @@ lemma really_topological_vector_bundle.has_groupoid :
     (continuous_transitions_groupoid 𝕜 B F) :=
 { compatible := begin
     rintros _ _ ⟨e, he, rfl⟩ ⟨e', he', rfl⟩,
-    exact really_topological_vector_bundle.nice e he e' he',
+    exact really_topological_vector_bundle.continuous_coord_change _ he _ he',
   end }
 
 end
