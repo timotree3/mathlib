@@ -339,12 +339,11 @@ structure topological_vector_bundle_core (ι : Type*) :=
 (is_open_base_set  : ∀ i, is_open (base_set i))
 (index_at          : B → ι)
 (mem_base_set_at   : ∀ x, x ∈ base_set (index_at x))
-(coord_change      : ι → ι → B → (F →ₗ[R] F))
+(coord_change      : ι → ι → B → (F →L[R] F))
 (coord_change_self : ∀ i, ∀ x ∈ base_set i, ∀ v, coord_change i i x v = v)
-(coord_change_continuous : ∀ i j, continuous_on (λp : B × F, coord_change i j p.1 p.2)
-                                               (((base_set i) ∩ (base_set j)) ×ˢ (univ : set F)))
 (coord_change_comp : ∀ i j k, ∀ x ∈ (base_set i) ∩ (base_set j) ∩ (base_set k), ∀ v,
   (coord_change j k x) (coord_change i j x v) = coord_change i k x v)
+(coord_change_continuous : ∀ i j, continuous_on (coord_change i j) (base_set i ∩ base_set j))
 
 /-- The trivial topological vector bundle core, in which all the changes of coordinates are the
 identity. -/
@@ -354,10 +353,10 @@ def trivial_topological_vector_bundle_core (ι : Type*) [inhabited ι] :
   is_open_base_set := λ i, is_open_univ,
   index_at := λ x, default,
   mem_base_set_at := λ x, mem_univ x,
-  coord_change := λ i j x, linear_map.id,
+  coord_change := λ i j x, continuous_linear_map.id R F,
   coord_change_self := λ i x hx v, rfl,
   coord_change_comp := λ i j k x hx v, rfl,
-  coord_change_continuous := λ i j, continuous_on_snd, }
+  coord_change_continuous := λ i j, continuous_on_const, }
 
 instance (ι : Type*) [inhabited ι] : inhabited (topological_vector_bundle_core R B F ι) :=
 ⟨trivial_topological_vector_bundle_core R B F ι⟩
@@ -368,7 +367,9 @@ variables {R B F} {ι : Type*} (Z : topological_vector_bundle_core R B F ι)
 
 /-- Natural identification to a `topological_fiber_bundle_core`. -/
 def to_topological_vector_bundle_core : topological_fiber_bundle_core ι B F :=
-{ coord_change := λ i j b, Z.coord_change i j b, ..Z }
+{ coord_change := λ i j b, Z.coord_change i j b,
+  coord_change_continuous := sorry,
+  ..Z }
 
 instance to_topological_vector_bundle_core_coe : has_coe (topological_vector_bundle_core R B F ι)
   (topological_fiber_bundle_core ι B F) := ⟨to_topological_vector_bundle_core⟩
@@ -439,8 +440,8 @@ variables {ι} (b : B) (a : F)
 registering additionally in its type that it is a local bundle trivialization. -/
 def local_triv (i : ι) : topological_vector_bundle.trivialization R F Z.fiber :=
 { linear := λ x hx,
-  { map_add := λ v w, by simp only [linear_map.map_add] with mfld_simps,
-    map_smul := λ r v, by simp only [linear_map.map_smul] with mfld_simps},
+  { map_add := λ v w, by simp only [continuous_linear_map.map_add] with mfld_simps,
+    map_smul := λ r v, by simp only [continuous_linear_map.map_smul] with mfld_simps},
   ..topological_fiber_bundle_core.local_triv ↑Z i }
 
 variable (i : ι)
@@ -494,11 +495,28 @@ instance : topological_vector_bundle R F Z.fiber :=
         exact ha.2.2, },
       { simp only [mem_prod, mem_preimage, mem_inter_eq, local_triv_at_apply],
         exact ⟨Z.mem_base_set_at b, ha⟩, } } end⟩,
-  trivialization_atlas := set.range Z.local_triv_at,
+  trivialization_atlas := set.range Z.local_triv,
   trivialization_at := Z.local_triv_at,
   mem_base_set_trivialization_at := Z.mem_base_set_at,
-  trivialization_mem_atlas := mem_range_self,
-  continuous_coord_change := sorry }
+  trivialization_mem_atlas := λ b, ⟨Z.index_at b, rfl⟩,
+  continuous_coord_change := begin
+    rintros _ ⟨i, rfl⟩ _ ⟨i', rfl⟩,
+    refine ⟨Z.base_set i ∩ Z.base_set i', _, _,
+      λ b, continuous_linear_equiv.equiv_of_inverse
+        (Z.coord_change i i' b) (Z.coord_change i' i b) _ _, _, _⟩,
+    { sorry },
+    { sorry },
+    { sorry },
+    { sorry },
+    { convert Z.coord_change_continuous i i',
+      ext b,
+      refl },
+    { intros b hb v,
+      have : b ∈ Z.base_set i ∩ Z.base_set (Z.index_at b) ∩ Z.base_set i',
+      { simp only [base_set_at, local_triv_at_def, mem_inter_eq, mem_local_triv_at_base_set] at *,
+        tauto },
+      simp [Z.coord_change_comp _ _ _ _ this] }
+  end }
 
 /-- The projection on the base of a topological vector bundle created from core is continuous -/
 @[continuity] lemma continuous_proj : continuous Z.proj :=
