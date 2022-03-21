@@ -6,7 +6,7 @@ Authors: Heather Macbeth
 import geometry.manifold.charted_space
 import topology.vector_bundle_redo
 
-/-! # Topological vector bundles -/
+/-! # Groupoid interpretation of some properties of topological vector bundles -/
 
 noncomputable theory
 
