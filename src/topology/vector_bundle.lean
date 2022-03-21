@@ -295,6 +295,13 @@ def trivial_topological_vector_bundle.trivialization : trivialization R F (bundl
   proj_to_fun := λ y hy, rfl,
   linear := λ x hx, ⟨λ y z, rfl, λ c y, rfl⟩ }
 
+@[simp]
+lemma trivial_topological_vector_bundle.trivialization_source :
+  (trivial_topological_vector_bundle.trivialization R B F).source = univ := rfl
+
+@[simp]
+lemma trivial_topological_vector_bundle.trivialization_target :
+  (trivial_topological_vector_bundle.trivialization R B F).target = univ := rfl
 instance trivial_bundle.topological_vector_bundle :
   topological_vector_bundle R F (bundle.trivial B F) :=
 { trivialization_atlas := {trivial_topological_vector_bundle.trivialization R B F},
@@ -307,7 +314,12 @@ instance trivial_bundle.topological_vector_bundle :
       induced_const, top_inf_eq, trivial.proj_snd, id.def, trivial.topological_space, this,
       induced_id],
   end⟩,
-  continuous_coord_change := sorry }
+  continuous_coord_change := begin
+    intros e he e' he',
+    rw [mem_singleton_iff.mp he, mem_singleton_iff.mp he'],
+    exact ⟨univ, by simp, by simp, λb, continuous_linear_equiv.refl R F,
+           continuous_const.continuous_on, λ b hb v, rfl⟩
+  end }
 
 variables {R B F}
 
@@ -368,7 +380,8 @@ variables {R B F} {ι : Type*} (Z : topological_vector_bundle_core R B F ι)
 /-- Natural identification to a `topological_fiber_bundle_core`. -/
 def to_topological_vector_bundle_core : topological_fiber_bundle_core ι B F :=
 { coord_change := λ i j b, Z.coord_change i j b,
-  coord_change_continuous := sorry,
+  coord_change_continuous := λ i j, is_bounded_bilinear_map_apply.continuous.comp_continuous_on
+      ((Z.coord_change_continuous i j).prod_map continuous_on_id),
   ..Z }
 
 instance to_topological_vector_bundle_core_coe : has_coe (topological_vector_bundle_core R B F ι)
