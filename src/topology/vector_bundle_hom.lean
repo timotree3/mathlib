@@ -4,7 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Heather Macbeth
 -/
 
-import geometry.manifold.topological_vector_bundle
+import topology.vector_bundle_redo
 
 /-! # The bundle of continuous linear maps between two vector bundles over the same base -/
 
@@ -231,19 +231,10 @@ def _root_.vector_bundle_continuous_linear_map.really_topological_vector_prebund
   pretrivialization_mem_atlas := λ x,
     ⟨_, trivialization_mem_atlas 𝕜₁ F₁ E₁ x, _, trivialization_mem_atlas 𝕜₂ F₂ E₂ x, rfl⟩,
   continuous_coord_change := begin
-    letI : charted_space (B × F₁) (total_space E₁) := topological_vector_bundle.to_charted_space 𝕜₁ F₁ E₁,
-    letI : charted_space (B × F₂) (total_space E₂) := topological_vector_bundle.to_charted_space 𝕜₂ F₂ E₂,
-    haveI : has_groupoid (total_space E₁) (continuous_transitions 𝕜₁ B F₁) :=
-      really_topological_vector_bundle.nice,
-    haveI : has_groupoid (total_space E₂) (continuous_transitions 𝕜₂ B F₂) :=
-      really_topological_vector_bundle.nice,
     rintros _ ⟨e₁, he₁, e₂, he₂, rfl⟩ _ ⟨e₁', he₁', e₂', he₂', rfl⟩,
-    have He₁ : e₁.to_local_homeomorph ∈ atlas (B × F₁) (total_space E₁) := ⟨_, he₁, rfl⟩,
-    have He₂ : e₂.to_local_homeomorph ∈ atlas (B × F₂) (total_space E₂) := ⟨_, he₂, rfl⟩,
-    have He₁' : e₁'.to_local_homeomorph ∈ atlas (B × F₁) (total_space E₁) := ⟨_, he₁', rfl⟩,
-    have He₂' : e₂'.to_local_homeomorph ∈ atlas (B × F₂) (total_space E₂) := ⟨_, he₂', rfl⟩,
-    obtain ⟨s₁, hs₁, hs₁', ε₁, hε₁, heε₁⟩ := (continuous_transitions 𝕜₁ B F₁).compatible He₁ He₁',
-    obtain ⟨s₂, hs₂, hs₂', ε₂, hε₂, heε₂⟩ := (continuous_transitions 𝕜₂ B F₂).compatible He₂ He₂',
+    have := really_topological_vector_bundle.nice e₁ he₁ e₁' he₁',
+    obtain ⟨s₁, hs₁, hs₁', ε₁, hε₁, heε₁⟩ := really_topological_vector_bundle.nice e₁ he₁ e₁' he₁',
+    obtain ⟨s₂, hs₂, hs₂', ε₂, hε₂, heε₂⟩ := really_topological_vector_bundle.nice e₂ he₂ e₂' he₂',
     let Φ₁ : (F₁ →L[𝕜₁] F₁) →SL[σ] (F₁ →SL[σ] F₂) →L[𝕜₂] (F₁ →SL[σ] F₂),
     { apply continuous_linear_map.flip,
       exact (continuous_linear_map.compSL F₁ F₁ F₂ (ring_hom.id 𝕜₁) σ) },
