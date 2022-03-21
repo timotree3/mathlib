@@ -9,6 +9,8 @@ import topology.vector_bundle
 
 /-! # Topological vector bundles -/
 
+noncomputable theory
+
 open set filter bundle topological_vector_bundle
 
 section
@@ -107,11 +109,13 @@ def continuous_transitions : structure_groupoid (B × F) :=
       ext v,
       apply prod.mk.inj_left b',
       dsimp,
-      rw [← heε₀ _ _ _ hb', ← heε₀ _ _ _ (H' hb''), e.restr_eq_of_source_subset,
-        e.restr_eq_of_source_subset] },
+      -- rw [← heε₀ _ _ _ hb', ← heε₀ _ _ _ (H' hb''), e.restr_eq_of_source_subset,
+      --   e.restr_eq_of_source_subset] },
+      sorry },
     { intros b hb v,
       dsimp [ε],
-      rw [dif_pos hb, ← heε₀ (b, 0) _ _ (H' hb), e.restr_eq_of_source_subset] }
+      -- rw [dif_pos hb, ← heε₀ (b, 0) _ _ (H' hb), e.restr_eq_of_source_subset] }
+      sorry }
   end,
   eq_on_source' := λ e e' ⟨s, hes₁, hes₂, ε, hε, heε⟩ hee', begin
     refine ⟨s, _, _, ε, _, _⟩,
@@ -178,18 +182,31 @@ def to_topological_vector_prebundle (a : really_topological_vector_prebundle �
     refine this.congr _,
     rintros ⟨b, v⟩ h,
     sorry,
-    -- simp at h,
   end,
   .. a }
 
+/-- Make a `really_topological_vector_bundle` from a `really_topological_vector_prebundle`. -/
 def to_really_topological_vector_bundle (a : really_topological_vector_prebundle 𝕜 F E) :
   @really_topological_vector_bundle 𝕜 _ _ _ F _ _ _ E _ _
     a.to_topological_vector_prebundle.fiber_topology
     a.to_topological_vector_prebundle.total_space_topology :=
-{ nice := begin
-    sorry
-  end,
-  .. a.to_topological_vector_prebundle.to_topological_vector_bundle }
+begin
+  letI := a.to_topological_vector_prebundle.fiber_topology,
+  letI := a.to_topological_vector_prebundle.total_space_topology,
+  exact
+  { nice :=
+    { compatible := begin
+        rintros _ _ ⟨e, he, rfl⟩ ⟨e', he', rfl⟩,
+        obtain ⟨ε, hε, hee'ε⟩ :=
+        a.continuous_coord_change e.to_pretrivialization _ e'.to_pretrivialization _,
+        { refine ⟨e.base_set ∩ e'.base_set, _, _, ε, hε, hee'ε⟩,
+          { sorry },
+          { sorry } },
+        { sorry },
+        { sorry }
+      end },
+    .. a.to_topological_vector_prebundle.to_topological_vector_bundle }
+end
 
 end really_topological_vector_prebundle
 
