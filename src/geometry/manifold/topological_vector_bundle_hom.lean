@@ -230,7 +230,31 @@ def _root_.vector_bundle_continuous_linear_map.really_topological_vector_prebund
     ⟨mem_base_set_trivialization_at 𝕜₁ F₁ E₁ x, mem_base_set_trivialization_at 𝕜₂ F₂ E₂ x⟩,
   pretrivialization_mem_atlas := λ x,
     ⟨_, trivialization_mem_atlas 𝕜₁ F₁ E₁ x, _, trivialization_mem_atlas 𝕜₂ F₂ E₂ x, rfl⟩,
-  continuous_coord_change := sorry } -- *** the real test! ****
+  continuous_coord_change := begin
+    letI : charted_space (B × F₁) (total_space E₁) := topological_vector_bundle.to_charted_space 𝕜₁ F₁ E₁,
+    letI : charted_space (B × F₂) (total_space E₂) := topological_vector_bundle.to_charted_space 𝕜₂ F₂ E₂,
+    haveI : has_groupoid (total_space E₁) (continuous_transitions 𝕜₁ B F₁) :=
+      really_topological_vector_bundle.nice,
+    haveI : has_groupoid (total_space E₂) (continuous_transitions 𝕜₂ B F₂) :=
+      really_topological_vector_bundle.nice,
+    rintros _ ⟨e₁, he₁, e₂, he₂, rfl⟩ _ ⟨e₁', he₁', e₂', he₂', rfl⟩,
+    have He₁ : e₁.to_local_homeomorph ∈ atlas (B × F₁) (total_space E₁) := ⟨_, he₁, rfl⟩,
+    have He₂ : e₂.to_local_homeomorph ∈ atlas (B × F₂) (total_space E₂) := ⟨_, he₂, rfl⟩,
+    have He₁' : e₁'.to_local_homeomorph ∈ atlas (B × F₁) (total_space E₁) := ⟨_, he₁', rfl⟩,
+    have He₂' : e₂'.to_local_homeomorph ∈ atlas (B × F₂) (total_space E₂) := ⟨_, he₂', rfl⟩,
+    obtain ⟨s₁, hs₁, hs₁', ε₁, hε₁, heε₁⟩ := (continuous_transitions 𝕜₁ B F₁).compatible He₁ He₁',
+    obtain ⟨s₂, hs₂, hs₂', ε₂, hε₂, heε₂⟩ := (continuous_transitions 𝕜₂ B F₂).compatible He₂ He₂',
+    let Φ₁ : (F₁ →L[𝕜₁] F₁) →SL[σ] (F₁ →SL[σ] F₂) →L[𝕜₂] (F₁ →SL[σ] F₂),
+    { apply continuous_linear_map.flip,
+      exact (continuous_linear_map.compSL F₁ F₁ F₂ (ring_hom.id 𝕜₁) σ) },
+    let Φ₂ := continuous_linear_map.compSL F₁ F₂ F₂ σ (ring_hom.id 𝕜₂),
+    let ε := λ x, continuous_linear_equiv.arrow_congr_linear_equiv σ (ε₁ x) (ε₂ x),
+    refine ⟨λ x, continuous_linear_equiv.mk (ε x) _ _, _, _⟩,
+    { exact ((Φ₂ (ε₂ x)).comp (Φ₁ (ε₁ x).symm)).continuous },
+    { exact ((Φ₁ (ε₁ x)).comp (Φ₂ (ε₂ x).symm)).continuous },
+    { sorry },
+    { sorry }
+  end }
 
 /-- Topology on the continuous `σ`-semilinear_maps between the respective fibres at a point of two
 vector bundles over the same base.  The topology we put on the continuous
@@ -298,7 +322,7 @@ lemma trivialization.continuous_linear_equiv_at_continuous_linear_map
       (e₂.continuous_linear_equiv_at x hx₂) :=
 begin
   ext1,
-  simp [trivialization.continuous_linear_map_apply σ hx₁ hx₂],
+  simp [trivialization.continuous_linear_map_apply σ he₁ he₂ hx₁ hx₂],
 end
 
 end topological_vector_bundle
