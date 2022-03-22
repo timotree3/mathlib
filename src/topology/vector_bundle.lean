@@ -571,7 +571,7 @@ structure topological_vector_prebundle :=
 (mem_base_pretrivialization_at : ∀ x : B, x ∈ (pretrivialization_at x).base_set)
 (pretrivialization_mem_atlas : ∀ x : B, pretrivialization_at x ∈ pretrivialization_atlas)
 (continuous_coord_change : ∀ e e' ∈ pretrivialization_atlas,
-  continuous_transitions R B F (by exact e.to_local_equiv.symm.trans e'.to_local_equiv))
+  continuous_transitions R B F (e'.to_local_equiv.symm.trans e.to_local_equiv : _))
 
 namespace topological_vector_prebundle
 
@@ -601,20 +601,15 @@ def to_topological_fiber_prebundle (a : topological_vector_prebundle R F E) :
     have H : e'.to_fiber_bundle_pretrivialization.to_local_equiv.target ∩
       (e'.to_fiber_bundle_pretrivialization.to_local_equiv.symm) ⁻¹'
       e.to_fiber_bundle_pretrivialization.to_local_equiv.source = s ×ˢ (univ : set F),
-    { simpa using hs' },
+    { simpa using hs },
     rw H,
-    have : continuous_on (λ p : B × F, (p.1, (ε p.1).symm p.2)) (s ×ˢ (univ : set F)),
-    {
-      sorry },
+    have : continuous_on (λ p : B × F, (p.1, (ε p.1) p.2)) (s ×ˢ (univ : set F)),
+    { apply continuous_on_fst.prod,
+      exact is_bounded_bilinear_map_apply.continuous.comp_continuous_on
+        (hε.prod_map continuous_on_id) },
     apply this.congr,
     rintros ⟨b, f⟩ ⟨hb : b ∈ s, -⟩,
-    dsimp only,
-    specialize heε b hb ((ε b).symm f),
-    rw [continuous_linear_equiv.apply_symm_apply, local_equiv.eq_iff_symm_eq,
-        local_equiv.trans_symm_eq_symm_trans_symm, local_equiv.symm_symm] at heε,
-    { exact heε },
-    { simp [hs, hb] },
-    { simp [hs', hb] }
+    exact heε _ hb _,
   end,
   .. a }
 
@@ -673,7 +668,7 @@ noncomputable lemma to_topological_vector_bundle :
   trivialization_mem_atlas := λ x, ⟨_, a.pretrivialization_mem_atlas x, rfl⟩,
   continuous_coord_change := begin
     rintros _ ⟨e, he, rfl⟩ _ ⟨e', he', rfl⟩,
-    exact a.continuous_coord_change e he e' he',
+    exact a.continuous_coord_change e' he' e he,
   end }
 
 end topological_vector_prebundle
