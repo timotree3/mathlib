@@ -577,6 +577,17 @@ namespace topological_vector_prebundle
 
 variables {R E F}
 
+lemma set.inj_on.eq_iff {α β : Type*} (f : α → β) {a a' : α} {s : set α} (h : inj_on f s)
+  (ha : a ∈ s) (ha' : a' ∈ s) : f a = f a' ↔ a = a' :=
+⟨h ha ha', congr_arg f⟩
+
+lemma local_equiv.eq_iff_symm_eq {α β : Type*} (e : local_equiv α β) {a : α} {b : β}
+  (ha : a ∈ e.source) (hb : b ∈ e.target) : e a = b ↔ e.symm b = a :=
+begin
+  conv_lhs { rw [← local_equiv.right_inv e hb, eq_comm] },
+  exact e.inj_on.eq_iff (e.map_target hb) ha
+end
+
 /-- Natural identification of `topological_vector_prebundle` as a `topological_fiber_prebundle`. -/
 def to_topological_fiber_prebundle (a : topological_vector_prebundle R F E) :
   topological_fiber_prebundle F (proj E) :=
@@ -587,16 +598,23 @@ def to_topological_fiber_prebundle (a : topological_vector_prebundle R F E) :
   continuous_triv_change := begin
     rintros _ ⟨e, he, rfl⟩ _ ⟨e', he', rfl⟩,
     obtain ⟨s, hs, hs', ε, hε, heε⟩ := a.continuous_coord_change e he e' he',
-    have h_source : (e'.to_local_equiv.target ∩ (e'.to_local_equiv.symm) ⁻¹'
-      e.to_local_equiv.source) = (e.to_local_equiv.symm.trans e'.to_local_equiv).source,
-    { sorry },
-    have : continuous_on (λ p : B × F, (p.1, ε p.1 p.2))
-      (e'.to_local_equiv.target ∩ (e'.to_local_equiv.symm) ⁻¹' e.to_local_equiv.source),
-    { rw h_source,
+    have H : e'.to_fiber_bundle_pretrivialization.to_local_equiv.target ∩
+      (e'.to_fiber_bundle_pretrivialization.to_local_equiv.symm) ⁻¹'
+      e.to_fiber_bundle_pretrivialization.to_local_equiv.source = s ×ˢ (univ : set F),
+    { simpa using hs' },
+    rw H,
+    have : continuous_on (λ p : B × F, (p.1, (ε p.1).symm p.2)) (s ×ˢ (univ : set F)),
+    {
       sorry },
-    refine this.congr _,
-    rintros ⟨b, v⟩ h,
-    sorry,
+    apply this.congr,
+    rintros ⟨b, f⟩ ⟨hb : b ∈ s, -⟩,
+    dsimp only,
+    specialize heε b hb ((ε b).symm f),
+    rw [continuous_linear_equiv.apply_symm_apply, local_equiv.eq_iff_symm_eq,
+        local_equiv.trans_symm_eq_symm_trans_symm, local_equiv.symm_symm] at heε,
+    { exact heε },
+    { simp [hs, hb] },
+    { simp [hs', hb] }
   end,
   .. a }
 
