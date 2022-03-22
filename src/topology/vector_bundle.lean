@@ -513,22 +513,30 @@ instance : topological_vector_bundle R F Z.fiber :=
   mem_base_set_trivialization_at := Z.mem_base_set_at,
   trivialization_mem_atlas := λ b, ⟨Z.index_at b, rfl⟩,
   continuous_coord_change := begin
+    classical,
     rintros _ ⟨i, rfl⟩ _ ⟨i', rfl⟩,
     refine ⟨Z.base_set i ∩ Z.base_set i', _, _,
-      λ b, continuous_linear_equiv.equiv_of_inverse
-        (Z.coord_change i i' b) (Z.coord_change i' i b) _ _, _, _⟩,
-    { sorry },
-    { sorry },
-    { sorry },
-    { sorry },
-    { convert Z.coord_change_continuous i i',
-      ext b,
+      λ b, if h : b ∈ Z.base_set i ∩ Z.base_set i' then continuous_linear_equiv.equiv_of_inverse
+        (Z.coord_change i i' b) (Z.coord_change i' i b) _ _ else continuous_linear_equiv.refl R F,
+      _, _⟩,
+    { ext ⟨b, f⟩,
+      simp },
+    { ext ⟨b, f⟩,
+      simp [and_comm] },
+    { intro f,
+      rw [Z.coord_change_comp _ _ _ _ ⟨h, h.1⟩, Z.coord_change_self _ _ h.1] },
+    { intro f,
+      rw [Z.coord_change_comp _ _ _ _ ⟨⟨h.2, h.1⟩, h.2⟩, Z.coord_change_self _ _ h.2] },
+    { apply continuous_on.congr (Z.coord_change_continuous i i'),
+      intros b hb,
+      simp [hb],
+      ext v,
       refl },
     { intros b hb v,
       have : b ∈ Z.base_set i ∩ Z.base_set (Z.index_at b) ∩ Z.base_set i',
       { simp only [base_set_at, local_triv_at_def, mem_inter_eq, mem_local_triv_at_base_set] at *,
         tauto },
-      simp [Z.coord_change_comp _ _ _ _ this] }
+      simp [hb, Z.coord_change_comp _ _ _ _ this] }
   end }
 
 /-- The projection on the base of a topological vector bundle created from core is continuous -/
