@@ -577,6 +577,8 @@ namespace topological_vector_prebundle
 
 variables {R E F}
 
+-- The next two lemmas are no longer necessary, but I think they should still go into mathlib
+
 lemma set.inj_on.eq_iff {α β : Type*} (f : α → β) {a a' : α} {s : set α} (h : inj_on f s)
   (ha : a ∈ s) (ha' : a' ∈ s) : f a = f a' ↔ a = a' :=
 ⟨h ha ha', congr_arg f⟩
@@ -652,7 +654,7 @@ end
 def fiber_topology (b : B) : topological_space (E b) :=
 topological_space.induced (total_space_mk E b) a.total_space_topology
 
-noncomputable lemma to_topological_vector_bundle :
+noncomputable def to_topological_vector_bundle :
   @topological_vector_bundle R _ F E _ _ _ _ _ _ a.total_space_topology a.fiber_topology :=
 { total_space_mk_inducing := λ b,
   begin
@@ -860,6 +862,15 @@ def prod : trivialization R (F₁ × F₂) (E₁ ×ᵇ E₂) :=
     map_smul := λ c ⟨v₁, v₂⟩,
       congr_arg2 prod.mk ((e₁.linear x h₁).map_smul c v₁) ((e₂.linear x h₂).map_smul c v₂), } }
 
+-- Patrick is not sure the next two simp lemmas really help. One could also use @[simps] above
+
+@[simp] lemma source_prod :
+  (prod e₁ e₂).source = (proj (λ x, E₁ x × E₂ x)) ⁻¹' (e₁.base_set ∩ e₂.base_set) := rfl
+
+@[simp] lemma target_prod :
+  (prod e₁ e₂).target = (e₁.base_set ∩ e₂.base_set) ×ˢ (set.univ : set (F₁ × F₂)) := rfl
+
+
 @[simp] lemma base_set_prod : (prod e₁ e₂).base_set = e₁.base_set ∩ e₂.base_set :=
 rfl
 
@@ -884,6 +895,42 @@ open trivialization
 variables [Π x : B, topological_space (E₁ x)] [Π x : B, topological_space (E₂ x)]
   [topological_vector_bundle R F₁ E₁] [topological_vector_bundle R F₂ E₂]
 
+-- I can't find the next lemma, and the statement takes forever to elaborate
+lemma continuous_linear_map.is_bounded_linear_prod_map
+  (R₁ : Type*) [nondiscrete_normed_field R₁]
+  (M₁ : Type*) [normed_group M₁] [normed_space R₁ M₁]
+  (M₂ : Type*) [normed_group M₂] [normed_space R₁ M₂]
+  (M₃ : Type*) [normed_group M₃] [normed_space R₁ M₃]
+  (M₄ : Type*) [normed_group M₄] [normed_space R₁ M₄] :
+  is_bounded_linear_map R₁ (λ p : (M₁ →L[R₁] M₂) × (M₃ →L[R₁] M₄), p.1.prod_map p.2) :=
+{ map_add := begin
+    rintros ⟨f, g⟩ ⟨f', g'⟩,
+    apply continuous_linear_map.ext,
+    rintros ⟨u, v⟩,
+    simp only [prod.mk_add_mk, continuous_linear_map.coe_prod_map', prod.map_mk, continuous_linear_map.add_apply],
+  end,
+  map_smul := begin
+    intros,
+    apply continuous_linear_map.ext,
+    rintros ⟨u, v⟩,
+    simp only [prod.smul_fst, prod.smul_snd, continuous_linear_map.coe_prod_map', continuous_linear_map.coe_smul', prod.map_mk,
+    pi.smul_apply, prod.smul_mk]
+  end,
+  bound := begin
+    use [1, zero_lt_one],
+    rintros ⟨f, g⟩,
+    rw one_mul,
+    apply continuous_linear_map.op_norm_le_bound _ (norm_nonneg _),
+    rintros ⟨u, v⟩,
+    apply max_le,
+    apply (f.le_op_norm _).trans (mul_le_mul _ _ (norm_nonneg _) (norm_nonneg _)),
+    apply le_max_left,
+    apply le_max_left,
+    apply (g.le_op_norm _).trans (mul_le_mul _ _ (norm_nonneg _) (norm_nonneg _)),
+    apply le_max_right,
+    apply le_max_right
+  end }
+
 /-- The product of two vector bundles is a vector bundle. -/
 instance _root_.bundle.prod.topological_vector_bundle :
   topological_vector_bundle R (F₁ × F₂) (E₁ ×ᵇ E₂) :=
@@ -899,7 +946,21 @@ instance _root_.bundle.prod.topological_vector_bundle :
     λ b, ⟨mem_base_set_trivialization_at R F₁ E₁ b, mem_base_set_trivialization_at R F₂ E₂ b⟩,
   trivialization_mem_atlas := λ b,
     ⟨(_, _), ⟨trivialization_mem_atlas R F₁ E₁ b, trivialization_mem_atlas R F₂ E₂ b⟩, rfl⟩,
-  continuous_coord_change := sorry }
+  continuous_coord_change := begin
+    rintros _ ⟨⟨e₁, e₂⟩, ⟨he₁, he₂⟩, rfl⟩ _ ⟨⟨e'₁, e'₂⟩, ⟨he'₁, he'₂⟩, rfl⟩,
+    obtain ⟨s, hs, hs', ε, hε, hε'⟩ := continuous_coord_change e₁ he₁ e'₁ he'₁,
+    obtain ⟨t, ht, ht', η, hη, hη'⟩ := continuous_coord_change e₂ he₂ e'₂ he'₂,
+    refine ⟨s ∩ t,_, _, λ b, (ε b).prod (η b), _, _⟩,
+    {
+      sorry },
+    {
+      sorry },
+    { exact (continuous_linear_map.is_bounded_linear_prod_map R F₁ F₁ F₂ F₂).continuous.comp_continuous_on ((hε.mono $ inter_subset_left s t).prod $ hη.mono $ inter_subset_right s t) },
+    { rintros b ⟨hbs, hbt⟩ ⟨u, v⟩,
+      specialize hε' b hbs u,
+      specialize hη' b hbt v,
+      sorry },
+  end }
 
 variables {R F₁ E₁ F₂ E₂}
 
