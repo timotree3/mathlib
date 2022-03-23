@@ -210,6 +210,8 @@ begin
   exact (continuous_coord_change e he e' he').some_spec.2.2.some_spec.2 b hb v
 end
 
+attribute [irreducible] coord_change
+
 namespace trivialization
 
 /-- In a topological vector bundle, a trivialization in the fiber (which is a priori only linear)
