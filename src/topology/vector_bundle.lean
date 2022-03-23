@@ -1022,11 +1022,11 @@ instance _root_.bundle.prod.topological_vector_bundle :
     let ε := coord_change he₁ he'₁,
     let η := coord_change he₂ he'₂,
     refine ⟨s ∩ t, _, _, λ b, (ε b).prod (η b), _, _⟩,
-    { convert topological_fiber_bundle.trivialization.symm_trans_source_eq
-        (↑(e₁.prod e₂) : topological_fiber_bundle.trivialization (F₁ × F₂) (proj (E₁ ×ᵇ E₂)))
-        (e'₁.prod e'₂) using 1,
-      change _ = ((e₁.base_set ∩ _) ∩ (e'₁.base_set ∩ _)) ×ˢ _,
-      mfld_set_tac },
+    { rw show (s ∩ t) ×ˢ (univ : set $ F₁ × F₂) =
+        (e₁.base_set ∩ e₂.base_set ∩  (e'₁.base_set ∩ e'₂.base_set)) ×ˢ (univ : set $ F₁ × F₂),
+        by mfld_set_tac ,
+      exact topological_fiber_bundle.trivialization.symm_trans_source_eq
+        (e₁.prod e₂) (e'₁.prod e'₂) },
     { sorry },
     { let Φ₁ := continuous_linear_map.compL R F₁ F₁ (F₁ × F₂) (continuous_linear_map.inl R F₁ F₂),
       let Φ₁' := (continuous_linear_map.compL R (F₁ × F₂) F₁ (F₁ × F₂)).flip
