@@ -146,7 +146,8 @@ class topological_vector_bundle :=
   continuous_transitions R B F (by exact e.to_local_equiv.symm.trans e'.to_local_equiv))
 -- what is the `by exact` doing here???
 
-export topological_vector_bundle (trivialization_at mem_base_set_trivialization_at)
+export topological_vector_bundle (trivialization_atlas trivialization_at
+  mem_base_set_trivialization_at trivialization_mem_atlas)
 
 variable [topological_vector_bundle R F E]
 
@@ -157,6 +158,57 @@ namespace topological_vector_bundle
 by { rw topological_fiber_bundle.trivialization.mem_source, apply mem_base_set_trivialization_at }
 
 variables {R F E}
+
+-- move this
+@[simp] lemma prod_eq_iff_eq {α β : Type*} {s₁ s₂ : set α} {t : set β} (ht : t.nonempty) :
+  s₁ ×ˢ t = s₂ ×ˢ t ↔ s₁ = s₂ :=
+begin
+  obtain ⟨b, hb⟩ := ht,
+  split,
+  { simp only [set.ext_iff],
+    intros h a,
+    simpa [hb, set.mem_prod] using h (a, b) },
+  { rintros rfl,
+    refl },
+end
+
+/-- The co-ordinate change (transition function) between two trivializations of a vector bundle
+over `B` modelled on `F`: this is a function from `B` to `F ≃L[R] F` (of course, only meaningful
+on the intersection of the domains of definition of the two trivializations). -/
+def coord_change {e e' : trivialization R F E} (he : e ∈ trivialization_atlas R F E)
+  (he' : e' ∈ trivialization_atlas R F E) :
+  B → F ≃L[R] F :=
+(topological_vector_bundle.continuous_coord_change e he e' he').some_spec.2.2.some
+
+lemma continuous_on_coord_change {e e' : trivialization R F E} (he : e ∈ trivialization_atlas R F E)
+  (he' : e' ∈ trivialization_atlas R F E) :
+  continuous_on (λ b, (coord_change he he' b : F →L[R] F)) (e.base_set ∩ e'.base_set) :=
+begin
+  let s := (continuous_coord_change e he e' he').some,
+  let hs := (continuous_coord_change e he e' he').some_spec.1,
+  have hs : s = e.base_set ∩ e'.base_set,
+  { have : s ×ˢ (univ : set F) = (e.base_set ∩ e'.base_set) ×ˢ (univ : set F) :=
+      hs.symm.trans (topological_fiber_bundle.trivialization.symm_trans_source_eq e e'),
+    have hF : (univ : set F).nonempty := univ_nonempty,
+      rwa prod_eq_iff_eq hF at this },
+  rw ← hs,
+  exact (continuous_coord_change e he e' he').some_spec.2.2.some_spec.1
+end
+
+lemma trans_eq_coord_change {e e' : trivialization R F E} (he : e ∈ trivialization_atlas R F E)
+  (he' : e' ∈ trivialization_atlas R F E) {b : B} (hb : b ∈ e.base_set ∩ e'.base_set) (v : F) :
+  e' (e.to_local_homeomorph.symm (b, v)) = (b, coord_change he he' b v) :=
+begin
+  let s := (continuous_coord_change e he e' he').some,
+  let hs := (continuous_coord_change e he e' he').some_spec.1,
+  have hs : s = e.base_set ∩ e'.base_set,
+  { have : s ×ˢ (univ : set F) = (e.base_set ∩ e'.base_set) ×ˢ (univ : set F) :=
+      hs.symm.trans (topological_fiber_bundle.trivialization.symm_trans_source_eq e e'),
+    have hF : (univ : set F).nonempty := univ_nonempty,
+      rwa prod_eq_iff_eq hF at this },
+  rw ← hs at hb,
+  exact (continuous_coord_change e he e' he').some_spec.2.2.some_spec.2 b hb v
+end
 
 namespace trivialization
 
@@ -252,6 +304,21 @@ begin
   { simp [e.source_eq, hb] },
   simp [-continuous_linear_equiv_at_apply, e.apply_eq_prod_continuous_linear_equiv_at b hb,
     e.to_local_homeomorph.right_inv h],
+end
+
+lemma comp_continuous_linear_equiv_at_eq_coord_change {e e' : trivialization R F E}
+  (he : e ∈ trivialization_atlas R F E) (he' : e' ∈ trivialization_atlas R F E) {b : B}
+  (hb : b ∈ e.base_set ∩ e'.base_set) (v : F) :
+  e'.continuous_linear_equiv_at b hb.2 ((e.continuous_linear_equiv_at b hb.1).symm v)
+  = coord_change he he' b v :=
+begin
+  suffices :
+    (b, e'.continuous_linear_equiv_at b hb.2 ((e.continuous_linear_equiv_at b hb.1).symm v))
+    = (b, coord_change he he' b v),
+  { simpa using this },
+  rw [← trans_eq_coord_change he he' hb, ← apply_eq_prod_continuous_linear_equiv_at,
+    symm_apply_eq_mk_continuous_linear_equiv_at_symm],
+  refl,
 end
 
 end trivialization
@@ -931,19 +998,6 @@ variables [Π x : B, topological_space (E₁ x)] [Π x : B, topological_space (E
 --     apply le_max_right
 --   end }
 
--- move this
-@[simp] lemma prod_eq_iff_eq {α β : Type*} {s₁ s₂ : set α} {t : set β} (ht : t.nonempty) :
-  s₁ ×ˢ t = s₂ ×ˢ t ↔ s₁ = s₂ :=
-begin
-  obtain ⟨b, hb⟩ := ht,
-  split,
-  { simp only [set.ext_iff],
-    intros h a,
-    simpa [hb, set.mem_prod] using h (a, b) },
-  { rintros rfl,
-    refl },
-end
-
 /-- The product of two vector bundles is a vector bundle. -/
 instance _root_.bundle.prod.topological_vector_bundle :
   topological_vector_bundle R (F₁ × F₂) (E₁ ×ᵇ E₂) :=
@@ -961,46 +1015,47 @@ instance _root_.bundle.prod.topological_vector_bundle :
     ⟨(_, _), ⟨trivialization_mem_atlas R F₁ E₁ b, trivialization_mem_atlas R F₂ E₂ b⟩, rfl⟩,
   continuous_coord_change := begin
     rintros _ ⟨⟨e₁, e₂⟩, ⟨he₁, he₂⟩, rfl⟩ _ ⟨⟨e'₁, e'₂⟩, ⟨he'₁, he'₂⟩, rfl⟩,
-    obtain ⟨s, hs, hs', ε, hε, hε'⟩ := continuous_coord_change e₁ he₁ e'₁ he'₁,
-    obtain ⟨t, ht, ht', η, hη, hη'⟩ := continuous_coord_change e₂ he₂ e'₂ he'₂,
-    have hs'' : s = e₁.base_set ∩ e'₁.base_set,
-    { have : s ×ˢ (univ : set F₁) = (e₁.prod e'₁).base_set ×ˢ (univ : set F₁) :=
-        hs.symm.trans (topological_fiber_bundle.trivialization.symm_trans_source_eq e₁ e'₁),
-      have hF₁ : (univ : set F₁).nonempty := univ_nonempty,
-      rwa prod_eq_iff_eq hF₁ at this },
-    have ht'' : t = e₂.base_set ∩ e'₂.base_set,
-    { have : t ×ˢ (univ : set F₂) = (e₂.prod e'₂).base_set ×ˢ (univ : set F₂) :=
-        ht.symm.trans (topological_fiber_bundle.trivialization.symm_trans_source_eq e₂ e'₂),
-      have hF₂ : (univ : set F₂).nonempty := univ_nonempty,
-      rwa prod_eq_iff_eq hF₂ at this },
+    let s := e₁.base_set ∩ e'₁.base_set,
+    let t := e₂.base_set ∩ e'₂.base_set,
+    let ε := coord_change he₁ he'₁,
+    let η := coord_change he₂ he'₂,
     refine ⟨s ∩ t, _, _, λ b, (ε b).prod (η b), _, _⟩,
     { convert topological_fiber_bundle.trivialization.symm_trans_source_eq
         (↑(e₁.prod e₂) : topological_fiber_bundle.trivialization (F₁ × F₂) (proj (E₁ ×ᵇ E₂)))
         (e'₁.prod e'₂) using 1,
-      rw [hs'', ht''],
       change _ = ((e₁.base_set ∩ _) ∩ (e'₁.base_set ∩ _)) ×ˢ _,
       mfld_set_tac },
     { sorry },
-    sorry { let Φ₁ := continuous_linear_map.compL R F₁ F₁ (F₁ × F₂) (continuous_linear_map.inl R F₁ F₂),
+    { let Φ₁ := continuous_linear_map.compL R F₁ F₁ (F₁ × F₂) (continuous_linear_map.inl R F₁ F₂),
       let Φ₁' := (continuous_linear_map.compL R (F₁ × F₂) F₁ (F₁ × F₂)).flip
         (continuous_linear_map.fst R F₁ F₂),
+      have hε := continuous_on_coord_change he₁ he'₁,
       have H₁ := (Φ₁' ∘L Φ₁).continuous.comp_continuous_on (hε.mono $ inter_subset_left s t),
       let Φ₂ := continuous_linear_map.compL R F₂ F₂ (F₁ × F₂) (continuous_linear_map.inr R F₁ F₂),
       let Φ₂' := (continuous_linear_map.compL R (F₁ × F₂) F₂ (F₁ × F₂)).flip
         (continuous_linear_map.snd R F₁ F₂),
+      have hη := continuous_on_coord_change he₂ he'₂,
       have H₂ := (Φ₂' ∘L Φ₂).continuous.comp_continuous_on (hη.mono $ inter_subset_right s t),
-      convert H₁.add H₂,
+      convert H₁.add H₂ using 1,
       ext1 b,
       apply continuous_linear_map.ext,
-      simp [Φ₁, Φ₁', Φ₂, Φ₂'] }, -- alt to Patrick's, works but times out, split this somewhere
+      simp only [add_zero, and_self, continuous_linear_equiv.coe_coe,
+        continuous_linear_equiv.coe_prod, continuous_linear_map.add_apply,
+        continuous_linear_map.coe_comp', continuous_linear_map.coe_fst',
+        continuous_linear_map.coe_prod_map', continuous_linear_map.coe_snd',
+        continuous_linear_map.compL_apply, continuous_linear_map.flip_apply,
+        continuous_linear_map.inl_apply, continuous_linear_map.inr_apply, eq_self_iff_true,
+        forall_const, function.comp_app, prod.forall, prod.mk.inj_iff, prod.mk_add_mk, prod_map,
+        zero_add] },
     { rintros b ⟨hbs, hbt⟩ ⟨u, v⟩,
-      specialize hε' b hbs u,
-      specialize hη' b hbt v,
-      rw hs'' at hbs,
-      rw ht'' at hbt,
       have h : (e₁.prod e₂).to_local_homeomorph.symm _ = _ := prod_symm_apply hbs.1 hbt.1 u v,
-      simp [h, prod_apply hbs.2 hbt.2],
-      sorry },
+      simp only [h, prod_apply hbs.2 hbt.2,
+        comp_continuous_linear_equiv_at_eq_coord_change he₁ he'₁ hbs,
+        comp_continuous_linear_equiv_at_eq_coord_change he₂ he'₂ hbt,
+        eq_self_iff_true, function.comp_app, local_equiv.coe_trans, local_homeomorph.coe_coe,
+        local_homeomorph.coe_coe_symm, prod.mk.inj_iff,
+        topological_vector_bundle.trivialization.coe_coe, true_and],
+      split; refl },
   end }
 
 variables {R F₁ E₁ F₂ E₂}

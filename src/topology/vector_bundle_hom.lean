@@ -232,10 +232,10 @@ def _root_.vector_bundle_continuous_linear_map.topological_vector_prebundle :
     ⟨_, trivialization_mem_atlas 𝕜₁ F₁ E₁ x, _, trivialization_mem_atlas 𝕜₂ F₂ E₂ x, rfl⟩,
   continuous_coord_change := begin
     rintros _ ⟨e₁, he₁, e₂, he₂, rfl⟩ _ ⟨e₁', he₁', e₂', he₂', rfl⟩,
-    obtain ⟨s₁, hs₁, hs₁', ε₁, hε₁, heε₁⟩ :=
-      topological_vector_bundle.continuous_coord_change e₁ he₁ e₁' he₁',
-    obtain ⟨s₂, hs₂, hs₂', ε₂, hε₂, heε₂⟩ :=
-      topological_vector_bundle.continuous_coord_change e₂ he₂ e₂' he₂',
+    let s₁ := e₁.base_set ∩ e₁'.base_set,
+    let s₂ := e₂.base_set ∩ e₂'.base_set,
+    let ε₁ := coord_change he₁ he₁',
+    let ε₂ := coord_change he₂ he₂',
     let Φ₁ : (F₁ →L[𝕜₁] F₁) →SL[σ] (F₁ →SL[σ] F₂) →L[𝕜₂] (F₁ →SL[σ] F₂),
     { apply continuous_linear_map.flip,
       exact (continuous_linear_map.compSL F₁ F₁ F₂ (ring_hom.id 𝕜₁) σ) },
