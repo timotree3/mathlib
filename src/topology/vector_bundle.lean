@@ -1034,13 +1034,14 @@ instance _root_.bundle.prod.topological_vector_bundle :
     let t := e₂.base_set ∩ e'₂.base_set,
     let ε := coord_change he₁ he'₁,
     let η := coord_change he₂ he'₂,
-    refine ⟨s ∩ t, _, _, λ b, (ε b).prod (η b), _, _⟩,
-    { rw show (s ∩ t) ×ˢ (univ : set $ F₁ × F₂) =
+    have fact : (s ∩ t) ×ˢ (univ : set $ F₁ × F₂) =
         (e₁.base_set ∩ e₂.base_set ∩  (e'₁.base_set ∩ e'₂.base_set)) ×ˢ (univ : set $ F₁ × F₂),
-        by mfld_set_tac ,
-      exact topological_fiber_bundle.trivialization.symm_trans_source_eq
-        (e₁.prod e₂) (e'₁.prod e'₂) },
-    { sorry },
+      by mfld_set_tac,
+    refine ⟨s ∩ t, _, _, λ b, (ε b).prod (η b), _, _⟩,
+    { rw fact,
+      apply topological_fiber_bundle.trivialization.symm_trans_source_eq },
+    { rw fact,
+      apply topological_fiber_bundle.trivialization.symm_trans_target_eq },
     { have hε := (continuous_on_coord_change he₁ he'₁).mono (inter_subset_left s t),
       have hη := (continuous_on_coord_change he₂ he'₂).mono (inter_subset_right s t),
       exact (continuous_linear_map.prod_mapL R F₁ F₁ F₂ F₂).continuous.comp_continuous_on
