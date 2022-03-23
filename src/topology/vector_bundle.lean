@@ -964,41 +964,54 @@ open trivialization
 variables [Π x : B, topological_space (E₁ x)] [Π x : B, topological_space (E₂ x)]
   [topological_vector_bundle R F₁ E₁] [topological_vector_bundle R F₂ E₂]
 
--- -- I can't find the next lemma, and the statement takes forever to elaborate
--- lemma continuous_linear_map.is_bounded_linear_prod_map
---   (R₁ : Type*) [nondiscrete_normed_field R₁]
---   (M₁ : Type*) [normed_group M₁] [normed_space R₁ M₁]
---   (M₂ : Type*) [normed_group M₂] [normed_space R₁ M₂]
---   (M₃ : Type*) [normed_group M₃] [normed_space R₁ M₃]
---   (M₄ : Type*) [normed_group M₄] [normed_space R₁ M₄] :
---   is_bounded_linear_map R₁ (λ p : (M₁ →L[R₁] M₂) × (M₃ →L[R₁] M₄), p.1.prod_map p.2) :=
--- { map_add := begin
---     rintros ⟨f, g⟩ ⟨f', g'⟩,
---     apply continuous_linear_map.ext,
---     rintros ⟨u, v⟩,
---     simp only [prod.mk_add_mk, continuous_linear_map.coe_prod_map', prod.map_mk, continuous_linear_map.add_apply],
---   end,
---   map_smul := begin
---     intros,
---     apply continuous_linear_map.ext,
---     rintros ⟨u, v⟩,
---     simp only [prod.smul_fst, prod.smul_snd, continuous_linear_map.coe_prod_map', continuous_linear_map.coe_smul', prod.map_mk,
---     pi.smul_apply, prod.smul_mk]
---   end,
---   bound := begin
---     use [1, zero_lt_one],
---     rintros ⟨f, g⟩,
---     rw one_mul,
---     apply continuous_linear_map.op_norm_le_bound _ (norm_nonneg _),
---     rintros ⟨u, v⟩,
---     apply max_le,
---     apply (f.le_op_norm _).trans (mul_le_mul _ _ (norm_nonneg _) (norm_nonneg _)),
---     apply le_max_left,
---     apply le_max_left,
---     apply (g.le_op_norm _).trans (mul_le_mul _ _ (norm_nonneg _) (norm_nonneg _)),
---     apply le_max_right,
---     apply le_max_right
---   end }
+-- Using explicit universe variables greatly speed up the next two declarations
+-- that should be moved to operator_norm.lean and also adapted to continuous_linear_equiv
+-- Note that continuous_linear_equiv.prod should also be renamed to continuous_linear_equiv.prod_map
+universes u₁ u₂ u₃ u₄ u₅
+
+lemma continuous_linear_map.is_bounded_linear_prod_map
+  (R₁ : Type u₁) [nondiscrete_normed_field R₁]
+  (M₁ : Type u₂) [normed_group M₁] [normed_space R₁ M₁]
+  (M₂ : Type u₃) [normed_group M₂] [normed_space R₁ M₂]
+  (M₃ : Type u₄) [normed_group M₃] [normed_space R₁ M₃]
+  (M₄ : Type u₅) [normed_group M₄] [normed_space R₁ M₄] :
+  is_bounded_linear_map R₁ (λ p : (M₁ →L[R₁] M₂) × (M₃ →L[R₁] M₄), p.1.prod_map p.2) :=
+{ map_add := begin
+    rintros ⟨f, g⟩ ⟨f', g'⟩,
+    apply continuous_linear_map.ext,
+    rintros ⟨u, v⟩,
+    simp only [prod.mk_add_mk, continuous_linear_map.coe_prod_map', prod.map_mk, continuous_linear_map.add_apply],
+  end,
+  map_smul := begin
+    intros,
+    apply continuous_linear_map.ext,
+    rintros ⟨u, v⟩,
+    simp only [prod.smul_fst, prod.smul_snd, continuous_linear_map.coe_prod_map', continuous_linear_map.coe_smul', prod.map_mk,
+    pi.smul_apply, prod.smul_mk]
+  end,
+  bound := begin
+    use [1, zero_lt_one],
+    rintros ⟨f, g⟩,
+    rw one_mul,
+    apply continuous_linear_map.op_norm_le_bound _ (norm_nonneg _),
+    rintros ⟨u, v⟩,
+    apply max_le,
+    apply (f.le_op_norm _).trans (mul_le_mul _ _ (norm_nonneg _) (norm_nonneg _)),
+    apply le_max_left,
+    apply le_max_left,
+    apply (g.le_op_norm _).trans (mul_le_mul _ _ (norm_nonneg _) (norm_nonneg _)),
+    apply le_max_right,
+    apply le_max_right
+  end }
+
+def continuous_linear_map.prod_mapL
+  (R₁ : Type u₁) [nondiscrete_normed_field R₁]
+  (M₁ : Type u₂) [normed_group M₁] [normed_space R₁ M₁]
+  (M₂ : Type u₃) [normed_group M₂] [normed_space R₁ M₂]
+  (M₃ : Type u₄) [normed_group M₃] [normed_space R₁ M₃]
+  (M₄ : Type u₅) [normed_group M₄] [normed_space R₁ M₄] :
+  ((M₁ →L[R₁] M₂) × (M₃ →L[R₁] M₄)) →L[R₁] ((M₁ × M₃) →L[R₁] (M₂ × M₄)) :=
+(continuous_linear_map.is_bounded_linear_prod_map R₁ M₁ M₂ M₃ M₄).to_continuous_linear_map
 
 /-- The product of two vector bundles is a vector bundle. -/
 instance _root_.bundle.prod.topological_vector_bundle :
@@ -1028,27 +1041,10 @@ instance _root_.bundle.prod.topological_vector_bundle :
       exact topological_fiber_bundle.trivialization.symm_trans_source_eq
         (e₁.prod e₂) (e'₁.prod e'₂) },
     { sorry },
-    { let Φ₁ := continuous_linear_map.compL R F₁ F₁ (F₁ × F₂) (continuous_linear_map.inl R F₁ F₂),
-      let Φ₁' := (continuous_linear_map.compL R (F₁ × F₂) F₁ (F₁ × F₂)).flip
-        (continuous_linear_map.fst R F₁ F₂),
-      have hε := continuous_on_coord_change he₁ he'₁,
-      have H₁ := (Φ₁' ∘L Φ₁).continuous.comp_continuous_on (hε.mono $ inter_subset_left s t),
-      let Φ₂ := continuous_linear_map.compL R F₂ F₂ (F₁ × F₂) (continuous_linear_map.inr R F₁ F₂),
-      let Φ₂' := (continuous_linear_map.compL R (F₁ × F₂) F₂ (F₁ × F₂)).flip
-        (continuous_linear_map.snd R F₁ F₂),
-      have hη := continuous_on_coord_change he₂ he'₂,
-      have H₂ := (Φ₂' ∘L Φ₂).continuous.comp_continuous_on (hη.mono $ inter_subset_right s t),
-      convert H₁.add H₂ using 1,
-      ext1 b,
-      apply continuous_linear_map.ext,
-      simp only [add_zero, and_self, continuous_linear_equiv.coe_coe,
-        continuous_linear_equiv.coe_prod, continuous_linear_map.add_apply,
-        continuous_linear_map.coe_comp', continuous_linear_map.coe_fst',
-        continuous_linear_map.coe_prod_map', continuous_linear_map.coe_snd',
-        continuous_linear_map.compL_apply, continuous_linear_map.flip_apply,
-        continuous_linear_map.inl_apply, continuous_linear_map.inr_apply, eq_self_iff_true,
-        forall_const, function.comp_app, prod.forall, prod.mk.inj_iff, prod.mk_add_mk, prod_map,
-        zero_add] },
+    { have hε := (continuous_on_coord_change he₁ he'₁).mono (inter_subset_left s t),
+      have hη := (continuous_on_coord_change he₂ he'₂).mono (inter_subset_right s t),
+      exact (continuous_linear_map.prod_mapL R F₁ F₁ F₂ F₂).continuous.comp_continuous_on
+        (hε.prod hη) },
     { rintros b ⟨hbs, hbt⟩ ⟨u, v⟩,
       have h : (e₁.prod e₂).to_local_homeomorph.symm _ = _ := prod_symm_apply hbs.1 hbt.1 u v,
       simp only [h, prod_apply hbs.2 hbt.2,
