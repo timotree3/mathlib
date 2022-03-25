@@ -215,6 +215,91 @@ variables (F₂ : Type*) [normed_group F₂] [normed_space 𝕜₂ F₂] [comple
   [Π x, has_continuous_add (E₂ x)] [Π x, has_continuous_smul 𝕜₂ (E₂ x)]
   [topological_vector_bundle 𝕜₂ F₂ E₂]
 
+
+example (e : F₁ ≃L[𝕜₁] F₁) : continuous_at (λ f : F₁ →L[𝕜₁] F₁, ring.inverse f) e :=
+normed_ring.inverse_continuous_at e.to_unit
+
+variables {F₁ F₂}
+
+noncomputable!
+def continuous_linear_equiv.arrow_congr_linear_equivL (u : F₁ ≃L[𝕜₁] F₁)
+  (v : F₂ ≃L[𝕜₂] F₂) : (F₁ →SL[σ] F₂) ≃L[𝕜₂] (F₁ →SL[σ] F₂) :=
+begin
+  let Φ₁ : (F₁ →L[𝕜₁] F₁) →SL[σ] (F₁ →SL[σ] F₂) →L[𝕜₂] (F₁ →SL[σ] F₂) :=
+  (continuous_linear_map.compSL F₁ F₁ F₂ (ring_hom.id 𝕜₁) σ : (F₁ →SL[σ] F₂) →L[𝕜₂] (F₁ →L[𝕜₁] F₁) →SL[σ] F₁ →SL[σ] F₂).flip,
+  let Φ₂ := continuous_linear_map.compSL F₁ F₂ F₂ σ (ring_hom.id 𝕜₂),
+  apply continuous_linear_equiv.mk (continuous_linear_equiv.arrow_congr_linear_equiv σ u v) _ _,
+  { exact ((Φ₂ v).comp (Φ₁ u.symm)).continuous },
+  { exact ((Φ₁ u).comp (Φ₂ v.symm)).continuous },
+end
+
+@[simp]
+lemma continuous_linear_equiv.arrow_congr_linear_equivL_apply (u : F₁ ≃L[𝕜₁] F₁)
+  (v : F₂ ≃L[𝕜₂] F₂) (f : F₁ →SL[σ] F₂) :
+  continuous_linear_equiv.arrow_congr_linear_equivL σ u v f = (v : F₂ →L[𝕜₂] F₂).comp (f.comp (u.symm : F₁ →L[𝕜₁] F₁)) := rfl
+
+def foo (u : F₁ →L[𝕜₁] F₁)
+  (v : F₂ →L[𝕜₂] F₂) : (F₁ →SL[σ] F₂) →ₗ[𝕜₂] (F₁ →SL[σ] F₂) :=
+{ to_fun := λ φ, v.comp (φ.comp $ ring.inverse u),
+  map_add' := λ φ ψ, by simp,
+  map_smul' := λ r φ, by simp }
+
+def bar (u : F₁ →L[𝕜₁] F₁)
+  (v : F₂ →L[𝕜₂] F₂) : (F₁ →SL[σ] F₂) →L[𝕜₂] (F₁ →SL[σ] F₂) :=
+begin
+  let Φ₁ : (F₁ →L[𝕜₁] F₁) →SL[σ] (F₁ →SL[σ] F₂) →L[𝕜₂] (F₁ →SL[σ] F₂) :=
+  (continuous_linear_map.compSL F₁ F₁ F₂ (ring_hom.id 𝕜₁) σ : (F₁ →SL[σ] F₂) →L[𝕜₂] (F₁ →L[𝕜₁] F₁) →SL[σ] F₁ →SL[σ] F₂).flip,
+  let Φ₂ := continuous_linear_map.compSL F₁ F₂ F₂ σ (ring_hom.id 𝕜₂),
+  exact continuous_linear_map.mk (foo σ u v) ((Φ₂ v).comp (Φ₁ $ ring.inverse u)).continuous,
+end
+
+@[simp] lemma bar_apply (u : F₁ →L[𝕜₁] F₁)
+  (v : F₂ →L[𝕜₂] F₂) (f : F₁ →SL[σ] F₂) : bar σ u v f = v.comp (f.comp $ ring.inverse u) := rfl
+
+lemma barL (u : F₁ ≃L[𝕜₁] F₁) (v : F₂ ≃L[𝕜₂] F₂) :
+  (continuous_linear_equiv.arrow_congr_linear_equivL σ u v : (F₁ →SL[σ] F₂) →L[𝕜₂] (F₁ →SL[σ] F₂)) = bar σ u v :=
+begin
+  apply continuous_linear_map.ext,
+  simp
+end
+
+
+@[simp] lemma continuous_linear_equiv.coe_to_unit {R : Type*} [ring R] {M : Type*}
+[topological_space M] [add_comm_group M]
+  [module R M] [topological_add_group M] (e : M ≃L[R] M) : (e.to_unit : M →L[R] M) = (e : M →L[R] M) :=
+  rfl
+
+lemma continuous_linear_map.continuous_compL
+  (𝕜 : Type*) (E : Type*) (Fₗ : Type*) (Gₗ : Type*) [normed_group E]
+  [normed_group Fₗ] [normed_group Gₗ] [nondiscrete_normed_field 𝕜]
+  [normed_space 𝕜 E] [normed_space 𝕜 Fₗ] [normed_space 𝕜 Gₗ] :
+  continuous (λ p : (Fₗ →L[𝕜] Gₗ) × (E →L[𝕜] Fₗ), continuous_linear_map.compL _ _ _ _ p.1 p.2) :=
+ is_bounded_bilinear_map_comp.continuous.comp continuous_swap
+
+lemma continuous_on_bar :
+  continuous_on (function.uncurry $ bar σ: (F₁ →L[𝕜₁] F₁) × (F₂ →L[𝕜₂] F₂) → ((F₁ →SL[σ] F₂) →L[𝕜₂] F₁ →SL[σ] F₂))  ((range $ (coe : (F₁ ≃L[𝕜₁] F₁) → (F₁ →L[𝕜₁] F₁))) ×ˢ (range $ (coe : (F₂ ≃L[𝕜₂] F₂) → (F₂ →L[𝕜₂] F₂)))) :=
+begin
+  set G₁ := (F₁ →L[𝕜₁] F₁),
+  set G₂ := (F₂ →L[𝕜₂] F₂),
+  set H := F₁ →SL[σ] F₂,
+  rintros ⟨f, g⟩ ⟨⟨φ, rfl : ↑φ = f⟩, ⟨ψ, rfl : ↑ψ = g⟩⟩,
+  apply continuous_at.continuous_within_at,
+  have : continuous_at ring.inverse (φ : F₁ →L[𝕜₁] F₁),
+    from normed_ring.inverse_continuous_at φ.to_unit,
+  let Φ₁ : G₁ →SL[σ] H →L[𝕜₂] H :=
+  by exact (continuous_linear_map.compSL F₁ F₁ F₂ (ring_hom.id 𝕜₁) σ : H →L[𝕜₂] G₁ →SL[σ] H).flip,
+  let Φ₂ := continuous_linear_map.compSL F₁ F₂ F₂ σ (ring_hom.id 𝕜₂),
+  have C₁ := (Φ₁.continuous.continuous_at.comp this).prod_map' Φ₂.continuous.continuous_at,
+  let Θ := continuous_linear_map.compL 𝕜₂ H H H,
+  change continuous_at
+    ((λ p: (H →L[𝕜₂] H) × (H →L[𝕜₂] H), Θ p.1 p.2) ∘ (prod.map (Φ₁ ∘ ring.inverse) Φ₂)) _,
+  apply continuous_at.comp _ C₁,
+  apply continuous.continuous_at,
+  apply continuous_linear_map.continuous_compL,
+end
+
+variables (F₁ F₂)
+
 /-- The continuous `σ`-semilinear maps between two topological vector bundles form a
 `topological_vector_prebundle` (this is an auxiliary construction for the
 `topological_vector_bundle` instance, in which the pretrivializations are collated but no
@@ -240,18 +325,25 @@ def _root_.vector_bundle_continuous_linear_map.topological_vector_prebundle :
     { apply continuous_linear_map.flip,
       exact (continuous_linear_map.compSL F₁ F₁ F₂ (ring_hom.id 𝕜₁) σ) },
     let Φ₂ := continuous_linear_map.compSL F₁ F₂ F₂ σ (ring_hom.id 𝕜₂),
-    let ε := λ x, continuous_linear_equiv.arrow_congr_linear_equiv σ (ε₁ x) (ε₂ x),
-    refine ⟨s₁ ∩ s₂, _, _ , λ x, continuous_linear_equiv.mk (ε x) _ _, _, _⟩,
+    let ε := λ b, continuous_linear_equiv.arrow_congr_linear_equivL σ (ε₁ b) (ε₂ b),
+    refine ⟨s₁ ∩ s₂, _, _ , ε, _, _⟩,
     { rw topological_fiber_bundle.pretrivialization.symm_trans_source_eq,
       simp [s₁, s₂],
       mfld_set_tac },
     { rw topological_fiber_bundle.pretrivialization.symm_trans_target_eq,
       simp [s₁, s₂],
       mfld_set_tac },
-    { exact ((Φ₂ (ε₂ x)).comp (Φ₁ (ε₁ x).symm)).continuous },
-    { exact ((Φ₁ (ε₁ x)).comp (Φ₂ (ε₂ x).symm)).continuous },
-    { sorry },
-    { sorry }
+    { have hε₁ : continuous_on (λ b, ↑(ε₁ b)) s₁ := continuous_on_coord_change he₁ he₁',
+      have hε₂ : continuous_on (λ b, ↑(ε₂ b)) s₂ := continuous_on_coord_change he₂ he₂',
+      have : ∀ b ∈ s₁ ∩ s₂, (ε b : (F₁ →SL[σ] F₂) →L[𝕜₂] F₁ →SL[σ] F₂) = bar σ ↑(ε₁ b) ↑(ε₂ b),
+      { intros b hb,
+        apply barL },
+        apply continuous_on.congr _ this,
+      let f : B → (F₁ →L[𝕜₁] F₁) × (F₂ →L[𝕜₂] F₂) := λ (b : B), (↑(ε₁ b), ↑(ε₂ b)),
+      have : continuous_on f (s₁ ∩ s₂) := (hε₁.mono (inter_subset_left s₁ s₂)).prod (hε₂.mono (inter_subset_right s₁ s₂)),
+      exact (continuous_on_bar σ).comp this (λ b hb, ⟨⟨ε₁ b, rfl⟩, ⟨ε₂ b, rfl⟩⟩) },
+    { intros b hb φ,
+      sorry }
   end }
 
 /-- Topology on the continuous `σ`-semilinear_maps between the respective fibres at a point of two
