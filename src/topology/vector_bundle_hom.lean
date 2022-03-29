@@ -203,13 +203,12 @@ end pretrivialization
 
 open pretrivialization
 variables [ring_hom_isometric σ] (F₁ : Type*) [normed_group F₁] [normed_space 𝕜₁ F₁]
-  [complete_space F₁]
   (E₁ : B → Type*) [Π x, add_comm_monoid (E₁ x)] [Π x, module 𝕜₁ (E₁ x)]
   [Π x : B, topological_space (E₁ x)] [topological_space (total_space E₁)]
   [Π x, has_continuous_add (E₁ x)] [Π x, has_continuous_smul 𝕜₁ (E₁ x)]
   [topological_vector_bundle 𝕜₁ F₁ E₁]
 
-variables (F₂ : Type*) [normed_group F₂] [normed_space 𝕜₂ F₂] [complete_space F₂]
+variables (F₂ : Type*) [normed_group F₂] [normed_space 𝕜₂ F₂]
   (E₂ : B → Type*) [Π x, add_comm_monoid (E₂ x)] [Π x, module 𝕜₂ (E₂ x)]
   [Π x : B, topological_space (E₂ x)] [topological_space (total_space E₂)]
   [Π x, has_continuous_add (E₂ x)] [Π x, has_continuous_smul 𝕜₂ (E₂ x)]
@@ -292,11 +291,11 @@ def _root_.vector_bundle_continuous_linear_map.topological_vector_prebundle :
     ⟨_, trivialization_mem_atlas 𝕜₁ F₁ E₁ x, _, trivialization_mem_atlas 𝕜₂ F₂ E₂ x, rfl⟩,
   continuous_coord_change := begin
     rintros _ ⟨e₁, he₁, e₂, he₂, rfl⟩ _ ⟨e₁', he₁', e₂', he₂', rfl⟩,
-    let s₁ := e₁'.base_set ∩ e₁.base_set,
+    let s₁ := e₁.base_set ∩ e₁'.base_set,
     let s₂ := e₂'.base_set ∩ e₂.base_set,
-    let ε₁ := coord_change he₁' he₁,
+    let ε₁ := coord_change he₁ he₁',
     let ε₂ := coord_change he₂' he₂,
-    let ε := λ b, continuous_linear_equiv.arrow_congr_linear_equivL σ (ε₁ b) (ε₂ b),
+    let ε := λ b, continuous_linear_equiv.arrow_congr_linear_equivL σ (ε₁ b).symm (ε₂ b),
     refine ⟨s₁ ∩ s₂, _, _ , ε, _, _⟩,
     { rw topological_fiber_bundle.pretrivialization.symm_trans_source_eq,
       simp [s₁, s₂],
@@ -304,31 +303,27 @@ def _root_.vector_bundle_continuous_linear_map.topological_vector_prebundle :
     { rw topological_fiber_bundle.pretrivialization.symm_trans_target_eq,
       simp [s₁, s₂],
       mfld_set_tac },
-    { have hε₁ : continuous_on (λ b, ↑(ε₁ b)) s₁ := continuous_on_coord_change he₁' he₁,
+    { have hε₁ : continuous_on (λ b, ↑(ε₁ b)) s₁ := continuous_on_coord_change he₁ he₁',
       have hε₂ : continuous_on (λ b, ↑(ε₂ b)) s₂ := continuous_on_coord_change he₂' he₂,
       have : ∀ b ∈ s₁ ∩ s₂, (ε b : (F₁ →SL[σ] F₂) →L[𝕜₂] F₁ →SL[σ] F₂)
-        = bar σ (ring.inverse (ε₁ b)) ↑(ε₂ b),
+        = bar σ ↑(ε₁ b) ↑(ε₂ b),
       { intros b hb,
-        exact barL σ (ε₁ b) (ε₂ b) },
+        simpa using barL σ (ε₁ b).symm (ε₂ b) },
       refine continuous_on.congr _ this,
-      let f : B → (F₁ →L[𝕜₁] F₁) × (F₂ →L[𝕜₂] F₂) := λ (b : B), (ring.inverse (ε₁ b), ↑(ε₂ b)),
+      let f : B → (F₁ →L[𝕜₁] F₁) × (F₂ →L[𝕜₂] F₂) := λ (b : B), (↑(ε₁ b), ↑(ε₂ b)),
       have : continuous_on f (s₁ ∩ s₂),
-      { refine (continuous_on.mono _ (inter_subset_left s₁ s₂)).prod
-          (hε₂.mono (inter_subset_right s₁ s₂)),
-        intros b hb,
-        refine continuous_at.comp_continuous_within_at _ (hε₁ b hb),
-        exact (normed_ring.inverse_continuous_at (ε₁ b).to_unit) },
+      { exact (hε₁.mono (inter_subset_left s₁ s₂)).prod (hε₂.mono (inter_subset_right s₁ s₂)) },
       exact (continuous_bar σ).comp_continuous_on this },
     { intros b hb φ,
       dsimp [ε, ε₁, ε₂],
-      simp only [continuous_linear_map_symm_apply hb.1.1 hb.2.1],
-      convert continuous_linear_map_apply hb.1.2 hb.2.2 _,
-      simp only [← trivialization.comp_continuous_linear_equiv_at_eq_coord_change he₁' he₁ hb.1,
-        ← trivialization.comp_continuous_linear_equiv_at_eq_coord_change he₂' he₂ hb.2],
+      simp only [continuous_linear_map_symm_apply hb.1.2 hb.2.1],
+      convert continuous_linear_map_apply hb.1.1 hb.2.2 _,
       ext1 v,
       simp only [continuous_linear_map.coe_comp', continuous_linear_equiv.coe_coe,
         function.comp_app, continuous_linear_equiv.symm_trans_apply,
-        continuous_linear_equiv.symm_symm, continuous_linear_equiv.trans_apply] }
+        continuous_linear_equiv.symm_symm, continuous_linear_equiv.trans_apply,
+        ← trivialization.comp_continuous_linear_equiv_at_eq_coord_change he₁ he₁' hb.1,
+        ← trivialization.comp_continuous_linear_equiv_at_eq_coord_change he₂' he₂ hb.2] }
   end }
 
 /-- Topology on the continuous `σ`-semilinear_maps between the respective fibres at a point of two
