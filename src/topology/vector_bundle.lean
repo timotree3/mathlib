@@ -310,10 +310,11 @@ end
 
 lemma comp_continuous_linear_equiv_at_eq_coord_change {e e' : trivialization R F E}
   (he : e ∈ trivialization_atlas R F E) (he' : e' ∈ trivialization_atlas R F E) {b : B}
-  (hb : b ∈ e.base_set ∩ e'.base_set) (v : F) :
-  e'.continuous_linear_equiv_at b hb.2 ((e.continuous_linear_equiv_at b hb.1).symm v)
-  = coord_change he he' b v :=
+  (hb : b ∈ e.base_set ∩ e'.base_set) :
+  (e.continuous_linear_equiv_at b hb.1).symm.trans (e'.continuous_linear_equiv_at b hb.2)
+  = coord_change he he' b :=
 begin
+  ext v,
   suffices :
     (b, e'.continuous_linear_equiv_at b hb.2 ((e.continuous_linear_equiv_at b hb.1).symm v))
     = (b, coord_change he he' b v),
