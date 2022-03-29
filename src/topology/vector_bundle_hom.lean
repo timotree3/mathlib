@@ -370,7 +370,7 @@ lemma trivialization.continuous_linear_map_mem_atlas
   {e₂ : trivialization 𝕜₂ F₂ E₂} (he₂ : e₂ ∈ trivialization_atlas 𝕜₂ F₂ E₂) :
   trivialization.continuous_linear_map σ he₁ he₂ ∈
     trivialization_atlas 𝕜₂ (F₁ →SL[σ] F₂) (vector_bundle_continuous_linear_map σ F₁ E₁ F₂ E₂) :=
-sorry
+⟨_, ⟨e₁, he₁, e₂, he₂, rfl⟩, rfl⟩
 
 lemma trivialization.continuous_linear_map_apply
   {e₁ : trivialization 𝕜₁ F₁ E₁} (he₁ : e₁ ∈ trivialization_atlas 𝕜₁ F₁ E₁)
