@@ -208,6 +208,35 @@ begin
   field_simp [this]
 end
 
+#check tsum_mul_tsum_eq_tsum_sum_antidiagonal_of_summable_norm
+
+/-- In a Banach-algebra `𝔸` over a normed field `𝕂` of characteristic zero, if `x` and `y` are
+in the disk of convergence and commute, then `exp 𝕂 𝔸 (x + y) = (exp 𝕂 𝔸 x) * (exp 𝕂 𝔸 y)`. -/
+lemma exp_nsmul_of_mem_ball [char_zero 𝕂]
+  {x : 𝔸} (n : ℕ) (hx : x ∈ emetric.ball (0 : 𝔸) (exp_series 𝕂 𝔸).radius) :
+  exp 𝕂 𝔸 (n • x) = (exp 𝕂 𝔸 x) ^ n :=
+begin
+  induction n,
+  { simp[exp_zero], },
+  rw exp_eq_tsum,
+  rw pow_succ,
+  dsimp,
+  rw tsum_
+  -- rw tsmul_pow
+  rw [exp_eq_tsum, tsum_mul_tsum_eq_tsum_sum_antidiagonal_of_summable_norm
+        (norm_exp_series_summable_of_mem_ball' x hx) (norm_exp_series_summable_of_mem_ball' y hy)],
+  dsimp only,
+  conv_lhs {congr, funext, rw [hxy.add_pow' _, finset.smul_sum]},
+  refine tsum_congr (λ n, finset.sum_congr rfl $ λ kl hkl, _),
+  rw [nsmul_eq_smul_cast 𝕂, smul_smul, smul_mul_smul, ← (finset.nat.mem_antidiagonal.mp hkl),
+      nat.cast_add_choose, (finset.nat.mem_antidiagonal.mp hkl)],
+  congr' 1,
+  have : (n! : 𝕂) ≠ 0 := nat.cast_ne_zero.mpr n.factorial_ne_zero,
+  field_simp [this]
+end
+
+#exit
+
 end complete_algebra
 
 lemma algebra_map_exp_comm_of_mem_ball [complete_space 𝕂] (x : 𝕂)
