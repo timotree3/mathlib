@@ -128,6 +128,31 @@ begin
   refl,
 end
 
+
+def length_antidiagonal_tuple_bars : Π {k}, (fin k → ℕ) → list ℕ
+| 0 f := []
+| 1 f := []
+| (k + 2) f := f 0 :: (length_antidiagonal_tuple_bars (fin.tail f)).map nat.succ
+
+lemma length_antidiagonal_tuple (k n : ℕ) :
+  (antidiagonal_tuple k n).length = nat.choose (n + k - 1) (k - 1) :=
+begin
+  suffices :
+    ((antidiagonal_tuple k n).map length_antidiagonal_tuple_bars).length =
+      ((list.range (n + k - 1)).sublists_len (k - 1)).length ,
+  { rw list.length_map at this,
+    rw [this, list.length_sublists_len, list.length_range], },
+  rw list.perm.length_eq,
+  refine list.perm_of_nodup_nodup_to_finset_eq _ _ _,
+  refine list.nodup.map_on _ (nodup_antidiagonal_tuple _ _),
+  { intros x hx y hy h,
+    rw mem_antidiagonal_tuple at hx hy,
+    sorry },
+  refine (list.nodup_range _).sublists'.sublist (list.sublists_len_sublist_sublists' _ _),
+  ext,
+  simp [mem_antidiagonal_tuple],
+end
+
 end list.nat
 
 /-! ### Multisets -/
