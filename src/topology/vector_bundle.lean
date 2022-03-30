@@ -18,27 +18,23 @@ Let `B` be the base space. In our formalism, a topological vector bundle is by d
 `Σ (x : B), E x`, with the interest that one can put another topology than on `Σ (x : B), E x`
 which has the disjoint union topology.
 
-To have a topological vector bundle structure on `bundle.total_space E`,
-one should addtionally have the following data:
+To have a topological vector bundle structure on `bundle.total_space E`, one should
+additionally have the following data:
 
 * `F` should be a topological space and a module over a semiring `R`;
 * There should be a topology on `bundle.total_space E`, for which the projection to `B` is
 a topological fiber bundle with fiber `F` (in particular, each fiber `E x` is homeomorphic to `F`);
 * For each `x`, the fiber `E x` should be a topological vector space over `R`, and the injection
 from `E x` to `bundle.total_space F E` should be an embedding;
-* The most important condition: around each point, there should be a bundle trivialization which
-is a continuous linear equiv in the fibers.
+* There should be a distinguished set of bundle trivializations (which are continuous linear equivs
+in the fibres), the "trivialization atlas"
+* There should be a choice of bundle trivialization at each point, which belongs to this atlas.
 
-If all these conditions are satisfied, we register the typeclass
-`topological_vector_bundle R F E`. We emphasize that the data is provided by other classes, and
-that the `topological_vector_bundle` class is `Prop`-valued.
+If all these conditions are satisfied, we register the typeclass `topological_vector_bundle R F E`.
 
-The point of this formalism is that it is unbundled in the sense that the total space of the bundle
-is a type with a topology, with which one can work or put further structure, and still one can
-perform operations on topological vector bundles.  For instance, assume that `E₁ : B → Type*` and
-`E₂ : B → Type*` define two topological vector bundles over `R` with fiber models `F₁` and `F₂`
-which are normed spaces. Then we construct the vector bundle `E₁ ×ᵇ E₂` of direct sums, with fiber
-`E x := (E₁ x × E₂ x)`. Then one can endow `bundle.total_space (E₁ ×ᵇ E₂)` with a topological vector
+If `E₁ : B → Type*` and `E₂ : B → Type*` define two topological vector bundles over `R` with fiber
+models `F₁` and `F₂`, denote by `E₁ ×ᵇ E₂` the sigma type of direct sums, with fiber
+`E x := (E₁ x × E₂ x)`. We can endow `bundle.total_space (E₁ ×ᵇ E₂)` with a topological vector
 bundle structure, `bundle.prod.topological_vector_bundle`.
 
 A similar construction (which is yet to be formalized) can be done for the vector bundle of
@@ -48,6 +44,16 @@ topology inherited from the norm-topology on `F₁ →L[R] F₂`, without the ne
 topology on continuous linear maps between general topological vector spaces).  Likewise for tensor
 products of topological vector bundles, exterior algebras, and so on, where the topology can be
 defined using a norm on the fiber model if this helps.
+
+## TODO
+
+The definition `topological_vector_bundle` is currently not the standard definition given in the
+literature, but rather a variant definition which agrees *in finite dimension* with the standard
+definition.  The standard definition in the literature requires a further condition on the
+compatibility of transition functions, see
+https://mathoverflow.net/questions/4943/vector-bundle-with-non-smoothly-varying-transition-functions/4997#4997
+https://mathoverflow.net/questions/54550/the-third-axiom-in-the-definition-of-infinite-dimensional-vector-bundles-why/54706#54706
+This will be fixed in a future refactor.
 
 ## Tags
 Vector bundle
@@ -138,10 +144,10 @@ space) has a topological vector space structure with fiber `F` (denoted with
 which is linear in the fibers. -/
 class topological_vector_bundle :=
 (total_space_mk_inducing [] : ∀ (b : B), inducing (total_space_mk E b))
-(trivialization_atlas []            : set (trivialization R F E))
-(trivialization_at []         : B → trivialization R F E)
+(trivialization_atlas [] : set (trivialization R F E))
+(trivialization_at [] : B → trivialization R F E)
 (mem_base_set_trivialization_at [] : ∀ b : B, b ∈ (trivialization_at b).base_set)
-(trivialization_mem_atlas []  : ∀ b : B, trivialization_at b ∈ trivialization_atlas)
+(trivialization_mem_atlas [] : ∀ b : B, trivialization_at b ∈ trivialization_atlas)
 (continuous_coord_change : ∀ e e' ∈ trivialization_atlas,
   continuous_transitions R B F (by exact e.to_local_equiv.symm.trans e'.to_local_equiv))
 -- what is the `by exact` doing here???
@@ -516,7 +522,7 @@ topological_fiber_bundle_core.to_topological_space ι ↑Z
 
 variables {ι} (b : B) (a : F)
 
-@[simp, mfld_simps] lemma coe_cord_change (i j : ι) :
+@[simp, mfld_simps] lemma coe_coord_change (i j : ι) :
   topological_fiber_bundle_core.coord_change ↑Z i j b = Z.coord_change i j b := rfl
 
 /-- Extended version of the local trivialization of a fiber bundle constructed from core,
@@ -697,9 +703,8 @@ def trivialization_of_mem_pretrivialization_atlas (a : topological_vector_prebun
   @topological_vector_bundle.trivialization R _ F E _ _ _ _ _ _ _ a.total_space_topology :=
 begin
   letI := a.total_space_topology,
-  exact
-  { linear := e.linear,
-    .. a.to_topological_fiber_prebundle.trivialization_of_mem_pretrivialization_atlas ⟨e, he, rfl⟩ }
+  exact { linear := e.linear,
+  ..a.to_topological_fiber_prebundle.trivialization_of_mem_pretrivialization_atlas ⟨e, he, rfl⟩ }
 end
 
 variable (a : topological_vector_prebundle R F E)
@@ -724,7 +729,13 @@ end
 def fiber_topology (b : B) : topological_space (E b) :=
 topological_space.induced (total_space_mk E b) a.total_space_topology
 
-noncomputable def to_topological_vector_bundle :
+/-- Make a `topological_vector_bundle` from a `topological_vector_prebundle`.  Concretely this means
+that, given a `topological_vector_prebundle` structure for a sigma-type `E` -- which consists of a
+number of "pretrivializations" identifying parts of `E` with product spaces `U × F` -- one
+establishes that for the topology constructed on the sigma-type using
+`topological_vector_prebundle.total_space_topology`, these "pretrivializations" are actually
+"trivializations" (i.e., homeomorphisms with respect to the constructed topology). -/
+def to_topological_vector_bundle :
   @topological_vector_bundle R _ F E _ _ _ _ _ _ a.total_space_topology a.fiber_topology :=
 { total_space_mk_inducing := λ b,
   begin
