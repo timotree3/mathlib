@@ -1060,13 +1060,13 @@ instance _root_.bundle.prod.topological_vector_bundle :
         (hε.prod hη) },
     { rintros b ⟨hbs, hbt⟩ ⟨u, v⟩,
       have h : (e₁.prod e₂).to_local_homeomorph.symm _ = _ := prod_symm_apply hbs.1 hbt.1 u v,
-      simp only [h, prod_apply hbs.2 hbt.2,
-        comp_continuous_linear_equiv_at_eq_coord_change he₁ he'₁ hbs,
-        comp_continuous_linear_equiv_at_eq_coord_change he₂ he'₂ hbt,
+      simp only [ε, η, h, prod_apply hbs.2 hbt.2,
+        ← comp_continuous_linear_equiv_at_eq_coord_change he₁ he'₁ hbs,
+        ← comp_continuous_linear_equiv_at_eq_coord_change he₂ he'₂ hbt,
         eq_self_iff_true, function.comp_app, local_equiv.coe_trans, local_homeomorph.coe_coe,
         local_homeomorph.coe_coe_symm, prod.mk.inj_iff,
-        topological_vector_bundle.trivialization.coe_coe, true_and],
-      split; refl },
+        topological_vector_bundle.trivialization.coe_coe, true_and,
+        continuous_linear_equiv.prod_apply, continuous_linear_equiv.trans_apply] },
   end }
 
 variables {R F₁ E₁ F₂ E₂}
