@@ -91,25 +91,43 @@ begin
   exact ((mem_range.mp (hk hb)).trans ha.2).ne',
 end
 
+--example {α : Type} (p : Prop) (q : α → Prop) : (∃ a, p ∧ q a) ↔ p ∧ ∃ a, q a := by library_search
+
+lemma xxx {x k : ℕ} : ∀ (a : ℕ), a ∈ U x k → a ∉ M x k :=
+begin
+  simp only [U, M, P],
+  simp only [sep_def, mem_bUnion, mem_filter, mem_range, exists_prop, and_imp, not_and, not_forall, not_le, forall_exists_index],
+  intros m n h1 h2 h3 h4 h5 h6,
+  use n,
+  use h3,
+  use h5,
+  use h2
+end
+
 /--
 Removing from {0, ..., x - 1} those elements `e` for which `e + 1` is a product of powers of primes
 smaller than or equal to `k` leaves those `e` for which there is a prime `p > k` that divides
 `e + 1`, or the union over those primes `p > k` of the sets of `e`s for which `e + 1` is a multiple
 of `p`.
 -/
-lemma range_sdiff_eq_bUnion {x k : ℕ} : range x \ M x k = U x k :=
+lemma range_sdiff_eq_bUnion {x k : ℕ} : range x = (U x k).disj_union (M x k) xxx :=
 begin
   ext e,
-  simp only [mem_bUnion, not_and, mem_sdiff, sep_def, mem_filter, mem_range, U, M, P],
-  push_neg,
-  split,
-  { rintros ⟨hex, hexh⟩,
-    obtain ⟨p, ⟨hpp, hpe1⟩, hpk⟩ := hexh hex,
-    refine ⟨p, _, ⟨hex, hpe1⟩⟩,
-    exact ⟨(nat.le_of_dvd e.succ_pos hpe1).trans_lt (nat.succ_lt_succ hex), hpk, hpp⟩ },
-  { rintros ⟨p, hpfilter, ⟨hex, hpe1⟩⟩,
-    rw imp_iff_right hex,
-    exact ⟨hex, ⟨p, ⟨hpfilter.2.2, hpe1⟩, hpfilter.2.1⟩⟩ },
+  simp only [U, M, P,
+ finset.mem_bUnion,
+ finset.mem_union,
+ finset.sep_def,
+ finset.disj_union_eq_union,
+ finset.mem_filter,
+ finset.mem_range,
+ finset.filter_congr_decidable, exists_prop, and_comm _ (e < x ∧ _), and_assoc,
+ exists_and_distrib_left, ←and_or_distrib_left],
+ refine (and_iff_left_of_imp (λ h, _)).symm,
+  apply or_iff_not_imp_left.mpr,
+intro H,
+    intros p pp,
+    contrapose! H,
+    refine ⟨p, ((nat.le_of_dvd e.succ_pos pp.2).trans_lt (nat.succ_lt_succ h)), H, pp⟩,
 end
 
 /--
@@ -226,8 +244,7 @@ begin
 
   -- This is indeed a partition, so `|U| + |M| = |range x| = x`.
   have h2 : x = card U + card M,
-  { rw [← card_range x, hU, hM, ← range_sdiff_eq_bUnion],
-    exact (card_sdiff_add_card_eq_card (finset.filter_subset _ _)).symm },
+  { rw [← card_range x, ←card_disj_union _ _ xxx, range_sdiff_eq_bUnion] },
 
   -- But for the `x` we have chosen above, both `|U|` and `|M|` are less than or equal to `x / 2`,
   -- and for U, the inequality is strict.
