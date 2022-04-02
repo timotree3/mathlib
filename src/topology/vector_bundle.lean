@@ -148,9 +148,12 @@ class topological_vector_bundle :=
 (trivialization_at [] : B → trivialization R F E)
 (mem_base_set_trivialization_at [] : ∀ b : B, b ∈ (trivialization_at b).base_set)
 (trivialization_mem_atlas [] : ∀ b : B, trivialization_at b ∈ trivialization_atlas)
+<<<<<<< HEAD
 (continuous_coord_change : ∀ e e' ∈ trivialization_atlas,
   continuous_transitions R B F (by exact e.to_local_equiv.symm.trans e'.to_local_equiv))
 -- what is the `by exact` doing here???
+=======
+>>>>>>> origin/master
 
 export topological_vector_bundle (trivialization_atlas trivialization_at
   mem_base_set_trivialization_at trivialization_mem_atlas)

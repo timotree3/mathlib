@@ -448,7 +448,6 @@ def tangent_bundle_core : basic_smooth_vector_bundle_core I M E :=
       simpa only [model_with_corners.left_inv] using hx },
     rw [B, C, D, E] at A,
     simp only [A, continuous_linear_map.coe_comp'] with mfld_simps,
-    simp only [forall_const, eq_self_iff_true, linear_map.coe_comp, continuous_linear_map.coe_comp],
   end }
 
 variable {M}
@@ -551,7 +550,7 @@ begin
   { rintros ⟨x_fst, x_snd⟩,
     simp only [basic_smooth_vector_bundle_core.to_topological_vector_bundle_core,
       tangent_bundle_core, A, continuous_linear_map.coe_id', basic_smooth_vector_bundle_core.chart,
-      chart_at, continuous_linear_map.coe_coe] with mfld_simps, },
+      chart_at, continuous_linear_map.coe_coe, sigma.mk.inj_iff] with mfld_simps, },
   show ((chart_at (model_prod H E) p).to_local_equiv).source = univ,
     by simp only [chart_at] with mfld_simps,
 end
