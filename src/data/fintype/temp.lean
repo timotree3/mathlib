@@ -3,6 +3,82 @@ import data.fintype.basic
 import data.fintype.sort
 import order.monovary
 import group_theory.perm.support
+import data.list.sort
+
+section
+open list
+
+variables {α : Type*} [preorder α] [@decidable_rel α (≤)] {a : α} {l : list α}
+
+def nondecreasing (l : list α) := sorted (λ x y, ¬ (y < x)) l
+
+@[simp] theorem nondecreasing_nil :  nondecreasing ([] : list α) := pairwise.nil
+
+lemma nondecreasing.of_cons : nondecreasing (a :: l) → nondecreasing l := pairwise.of_cons
+
+theorem nondecreasing.tail {l : list α} (h : nondecreasing l) : nondecreasing l.tail :=
+h.tail
+
+theorem rel_of_nondecreasing_cons {a : α} {l : list α} : nondecreasing (a :: l) →
+  ∀ b ∈ l, ¬ (b < a) :=
+rel_of_pairwise_cons
+
+@[simp] theorem nondecreasing_cons {a : α} {l : list α} :
+  nondecreasing (a :: l) ↔ (∀ b ∈ l, ¬ (b < a)) ∧ nondecreasing l :=
+pairwise_cons
+
+theorem nondecreasing.merge : ∀ {l l' : list α}, nondecreasing l → nondecreasing l' →
+  nondecreasing (merge (λ x y, ¬ (y < x)) l l')
+| []       []        h₁ h₂ := by simp [merge]
+| []       (b :: l') h₁ h₂ := by simpa [merge] using h₂
+| (a :: l) []        h₁ h₂ := by simpa [merge] using h₁
+| (a :: l) (b :: l') h₁ h₂ := begin
+  by_cases ¬ (b < a),
+  { simp only [merge, h, if_true, nondecreasing_cons, not_false_iff],
+    refine ⟨λ c hc, _, h₁.of_cons.merge h₂⟩,
+    { rcases (show c = b ∨ c ∈ l ∨ c ∈ l', by simpa [or.left_comm] using
+      (perm_merge _ _ _).subset hc) with rfl | hcl | hcl',
+      { exact h},
+      { exact rel_of_nondecreasing_cons h₁ _ hcl },
+      { replace hcl' := rel_of_nondecreasing_cons h₂ _ hcl',
+        sorry  }}},
+  { simp only [merge, h, if_false, nondecreasing_cons],
+    refine ⟨λ c hc, _, h₁.merge h₂.of_cons⟩,
+    { rcases (show c = a ∨ c ∈ l ∨ c ∈ l', by simpa [or.left_comm] using
+      (perm_merge _ _ _).subset hc) with rfl | hcl | hcl',
+      { push_neg at h,
+        exact asymm h},
+      { replace hcl := rel_of_nondecreasing_cons h₁ _ hcl,
+        push_neg at h,
+        contrapose! hcl,
+        exact lt_trans hcl h },
+      { exact rel_of_nondecreasing_cons h₂ _ hcl' }}}
+end
+
+open finset
+
+
+-- noncomputable lemma order_embedding.trans (α β γ : Type*) [has_le α] [has_le β] [has_le γ]
+--   (e : α ↪o β) (e' : β ↪o γ) : α ↪o γ := e.trans e'--
+
+-- namespace finset--
+
+-- variables {α : Type*} [preorder α]
+-- def order_emb_of_fin (s : finset α) {k : ℕ} (h : s.card = k) : s ↪o fin k := sorry
+-- order_embedding.trans (fin.cast ((length_sort (≤)).trans h)) $ _--
+--
+
+-- order_iso.trans (fin.cast ((length_sort (≤)).trans h).symm) $
+--   (s.sort_sorted_lt.nth_le_iso _).trans $ order_iso.set_congr _ _ $
+--     set.ext $ λ x, mem_sort _--
+
+-- end finset
+-- def to_name (α : Type*) [fintype α] [preorder α] {k : ℕ}
+--   (h : fintype.card α = k) : α ↪o fin k := sorry
+--   (univ.order_iso_of_fin h).trans $ (order_iso.set_congr _ _ coe_univ).trans order_iso.set.univ
+
+end
+
 
 namespace fintype
 
@@ -27,6 +103,19 @@ begin
   refine ⟨eo.to_equiv, monotone.comp _ eo.monotone⟩,
   change monotone (lex.fst ∘ f'),
   exact monotone.comp lex.fst.monotone (λ a b h, h),
+end
+
+lemma test [preorder α] : ∃ (σ : equiv.perm α), monotone (f ∘ σ) :=
+begin
+  have e0 : α ≃ fin m := fintype.equiv_fin_of_card_eq h,
+  let f' : α → lex (β × fin m) := λ a, (f a, e0 a),
+  letI : linear_order α := linear_order.lift f' _,
+  swap, { intros a b ab, apply e0.injective, convert congr_arg prod.snd ab },
+  sorry,
+  -- have eo : fin m ≃o α := mono_equiv_of_fin _ h,
+  -- refine ⟨eo.to_equiv, monotone.comp _ eo.monotone⟩,
+  -- change monotone (lex.fst ∘ f'),
+  -- exact monotone.comp lex.fst.monotone (λ a b h, h),
 end
 
 /-- Sorting a function. We permute the values of the domain of the function `α` -/
@@ -100,8 +189,20 @@ begin
     simpa using (h hxy) }
 end
 
+lemma exists_perm_monovary' [linear_order α] [linear_order β] [fintype ι] :
+  ∃ (σ : equiv.perm ι), monovary (f ∘ σ) g :=
+begin
+  cases (show ∃ m, fintype.card ι = m, by exact exists_eq') with m hι,
+  have e0 : ι ≃ fin m := fintype.equiv_fin_of_card_eq hι,
+  let f' : ι → lex (α × fin m) := λ a, (f a, e0 a),
+  letI : linear_order ι := linear_order.lift f' _,
+  swap, { intros a b ab, apply e0.injective, convert congr_arg prod.snd ab },
+  have eo : fin m ≃o ι := mono_equiv_of_fin _ hι,
+  sorry
+end
+
 lemma exists_perm_monovary [linear_order ι] [linear_order α] [linear_order β] [fintype ι] :
-  ∃ σ: equiv.perm ι, monovary (f ∘ σ) g :=
+  ∃ σ : equiv.perm ι, monovary (f ∘ σ) g :=
 begin
   cases (show ∃ m, fintype.card ι = m, by exact exists_eq') with m hι,
   cases fintype.exists_monotone_perm f hι with τ hτ,
