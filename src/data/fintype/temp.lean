@@ -5,7 +5,9 @@ import order.monovary
 import group_theory.perm.support
 import data.list.sort
 
+
 section
+
 open list
 
 variables {α : Type*} [preorder α] [@decidable_rel α (≤)] {a : α} {l : list α}
@@ -28,31 +30,34 @@ rel_of_pairwise_cons
 pairwise_cons
 
 theorem nondecreasing.merge : ∀ {l l' : list α}, nondecreasing l → nondecreasing l' →
-  nondecreasing (merge (λ x y, ¬ (y < x)) l l')
+  nondecreasing (merge (≤) l l')
 | []       []        h₁ h₂ := by simp [merge]
 | []       (b :: l') h₁ h₂ := by simpa [merge] using h₂
 | (a :: l) []        h₁ h₂ := by simpa [merge] using h₁
 | (a :: l) (b :: l') h₁ h₂ := begin
-  by_cases ¬ (b < a),
+  by_cases a ≤ b,
   { simp only [merge, h, if_true, nondecreasing_cons, not_false_iff],
     refine ⟨λ c hc, _, h₁.of_cons.merge h₂⟩,
     { rcases (show c = b ∨ c ∈ l ∨ c ∈ l', by simpa [or.left_comm] using
       (perm_merge _ _ _).subset hc) with rfl | hcl | hcl',
-      { exact h},
+      { exact not_lt_of_le h},
       { exact rel_of_nondecreasing_cons h₁ _ hcl },
       { replace hcl' := rel_of_nondecreasing_cons h₂ _ hcl',
-        sorry  }}},
+        contrapose! hcl',
+        exact lt_of_lt_of_le hcl' h  }}},
   { simp only [merge, h, if_false, nondecreasing_cons],
     refine ⟨λ c hc, _, h₁.merge h₂.of_cons⟩,
     { rcases (show c = a ∨ c ∈ l ∨ c ∈ l', by simpa [or.left_comm] using
       (perm_merge _ _ _).subset hc) with rfl | hcl | hcl',
-      { push_neg at h,
-        exact asymm h},
+      { contrapose! h,
+        exact le_of_lt h },
       { replace hcl := rel_of_nondecreasing_cons h₁ _ hcl,
-        push_neg at h,
-        contrapose! hcl,
-        exact lt_trans hcl h },
+        -- hypotheses `h : ¬a ≤ b` and `hcl : ¬c < a` with goal : `⊢ ¬c < b`, which is impossible
+        -- to deduce
+        sorry },
       { exact rel_of_nondecreasing_cons h₂ _ hcl' }}}
+end
+
 end
 
 open finset
@@ -76,9 +81,6 @@ open finset
 -- def to_name (α : Type*) [fintype α] [preorder α] {k : ℕ}
 --   (h : fintype.card α = k) : α ↪o fin k := sorry
 --   (univ.order_iso_of_fin h).trans $ (order_iso.set_congr _ _ coe_univ).trans order_iso.set.univ
-
-end
-
 
 namespace fintype
 
