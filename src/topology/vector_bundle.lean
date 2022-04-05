@@ -360,10 +360,7 @@ lemma trivial_topological_vector_bundle.trivialization_source :
 @[simp]
 lemma trivial_topological_vector_bundle.trivialization_target :
   (trivial_topological_vector_bundle.trivialization R B F).target = univ := rfl
-<<<<<<< HEAD
-=======
 
->>>>>>> redefine-vb-only
 instance trivial_bundle.topological_vector_bundle :
   topological_vector_bundle R F (bundle.trivial B F) :=
 { trivialization_atlas := {trivial_topological_vector_bundle.trivialization R B F},
