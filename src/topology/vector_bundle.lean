@@ -56,9 +56,6 @@ noncomputable theory
 
 open bundle set
 
-section
-
-section topological_vector_space
 variables (R : Type*) {B : Type*} (F : Type*) (E : B → Type*)
 
 section topological_vector_space
@@ -415,7 +412,6 @@ structure topological_vector_bundle_core (ι : Type*) :=
 (coord_change_continuous : ∀ i j, continuous_on (coord_change i j) (base_set i ∩ base_set j))
 (coord_change_comp : ∀ i j k, ∀ x ∈ (base_set i) ∩ (base_set j) ∩ (base_set k), ∀ v,
   (coord_change j k x) (coord_change i j x v) = coord_change i k x v)
-(coord_change_continuous : ∀ i j, continuous_on (coord_change i j) (base_set i ∩ base_set j))
 
 /-- The trivial topological vector bundle core, in which all the changes of coordinates are the
 identity. -/
@@ -768,7 +764,7 @@ lemma prod.inducing_diag : inducing
 
 end defs
 
-variables (R : Type*) [nondiscrete_normed_field R] {B : Type*} [topological_space B]
+variables [nondiscrete_normed_field R] [topological_space B]
 
 variables (F₁ : Type*) [normed_group F₁] [normed_space R F₁]
   (E₁ : B → Type*) [topological_space (total_space E₁)]
