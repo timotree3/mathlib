@@ -612,7 +612,6 @@ end
 section
 variables [nondiscrete_normed_field R] [∀ x, add_comm_monoid (E x)] [∀ x, module R (E x)]
   [normed_group F] [normed_space R F] [topological_space B]
-  [∀ x, topological_space (E x)]
 
 open topological_space
 
@@ -628,7 +627,6 @@ structure topological_vector_prebundle :=
 (pretrivialization_mem_atlas : ∀ x : B, pretrivialization_at x ∈ pretrivialization_atlas)
 (continuous_coord_change : ∀ e e' ∈ pretrivialization_atlas,
   continuous_transitions R B F (e'.to_local_equiv.symm.trans e.to_local_equiv : _))
-(total_space_mk_inducing : ∀ (b : B), inducing ((pretrivialization_at b) ∘ (total_space_mk E b)))
 
 namespace topological_vector_prebundle
 
