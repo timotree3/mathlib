@@ -8,57 +8,115 @@ import data.list.sort
 
 section
 
-open list
+#eval list.argmax (λ x, (x - 1) * (x - 2)) [1, 2, 1, 2]
+
+section preorder
 
 variables {α : Type*} {β : Type*} [preorder β] [@decidable_rel β (≤)] {l : list α}
 
+open list
 
+private theorem foldl_argmax₂_mem (f : α → β) (l) : Π (a m : α),
+  m ∈ foldl (argmax₂ f) (some a) l → m ∈ a :: l :=
+list.reverse_rec_on l (by simp [eq_comm])
+  begin
+    assume tl hd ih a m,
+    simp only [foldl_append, foldl_cons, foldl_nil, argmax₂],
+    cases hf : foldl (argmax₂ f) (some a) tl,
+    { simp {contextual := tt} },
+    { dsimp only, split_ifs,
+      { simp {contextual := tt} },
+      { -- `finish [ih _ _ hf]` closes this goal
+        rcases ih _ _ hf with rfl | H,
+        { simp only [mem_cons_iff, mem_append, mem_singleton, option.mem_def], tauto },
+        { apply λ hm, or.inr (list.mem_append.mpr $ or.inl _),
+          exact (option.mem_some_iff.mp hm ▸ H)} }}
+  end
 
-def nondecreasing (l : list α) := sorted (λ x y, ¬ (y < x)) l
+end preorder
 
-@[simp] theorem nondecreasing_nil :  nondecreasing ([] : list α) := pairwise.nil
+section linear_order
 
-lemma nondecreasing.of_cons : nondecreasing (a :: l) → nondecreasing l := pairwise.of_cons
+variables {α : Type*} {β : Type*} [linear_order β] {l : list α}
 
-theorem nondecreasing.tail {l : list α} (h : nondecreasing l) : nondecreasing l.tail :=
-h.tail
+open list
 
-theorem rel_of_nondecreasing_cons {a : α} {l : list α} : nondecreasing (a :: l) →
-  ∀ b ∈ l, ¬ (b < a) :=
-rel_of_pairwise_cons
+theorem index_of_argmax [decidable_eq α] {f : α → β} : Π {l : list α} {m : α}, m ∈ argmax f l →
+  ∀ {a}, a ∈ l → f m ≤ f a → l.index_of a ≤ l.index_of m
+| []       m _  _ _  _   := by simp
+| (hd::tl) m hm a ha ham := begin
+  simp only [index_of_cons, argmax_cons, option.mem_def] at ⊢ hm,
+  cases h : argmax f tl,
+  { rw h at hm,
+    simp * at * },
+  { rw h at hm,
+    dsimp only at hm,
+    cases ha with hahd hatl,
+    { clear index_of_argmax,
+      subst hahd,
+      split_ifs at hm,
+      { subst hm, simp },
+      { subst hm } },
+    { have := index_of_argmax h hatl, clear index_of_argmax,
+      split_ifs,
+      simp * at *,
+      simp * at *,
+      exfalso,
+      split_ifs at hm,
+      subst hm, subst h_2,
 
-@[simp] theorem nondecreasing_cons {a : α} {l : list α} :
-  nondecreasing (a :: l) ↔ (∀ b ∈ l, ¬ (b < a)) ∧ nondecreasing l :=
-pairwise_cons
-
-theorem nondecreasing.merge : ∀ {l l' : list α}, nondecreasing l → nondecreasing l' →
-  nondecreasing (merge (≤) l l')
-| []       []        h₁ h₂ := by simp [merge]
-| []       (b :: l') h₁ h₂ := by simpa [merge] using h₂
-| (a :: l) []        h₁ h₂ := by simpa [merge] using h₁
-| (a :: l) (b :: l') h₁ h₂ := begin
-  by_cases a ≤ b,
-  { simp only [merge, h, if_true, nondecreasing_cons, not_false_iff],
-    refine ⟨λ c hc, _, h₁.of_cons.merge h₂⟩,
-    { rcases (show c = b ∨ c ∈ l ∨ c ∈ l', by simpa [or.left_comm] using
-      (perm_merge _ _ _).subset hc) with rfl | hcl | hcl',
-      { exact not_lt_of_le h},
-      { exact rel_of_nondecreasing_cons h₁ _ hcl },
-      { replace hcl' := rel_of_nondecreasing_cons h₂ _ hcl',
-        contrapose! hcl',
-        exact lt_of_lt_of_le hcl' h  }}},
-  { simp only [merge, h, if_false, nondecreasing_cons],
-    refine ⟨λ c hc, _, h₁.merge h₂.of_cons⟩,
-    { rcases (show c = a ∨ c ∈ l ∨ c ∈ l', by simpa [or.left_comm] using
-      (perm_merge _ _ _).subset hc) with rfl | hcl | hcl',
-      { contrapose! h,
-        exact le_of_lt h },
-      { replace hcl := rel_of_nondecreasing_cons h₁ _ hcl,
-        -- hypotheses `h : ¬a ≤ b` and `hcl : ¬c < a` with goal : `⊢ ¬c < b`, which is impossible
-        -- to deduce
-        sorry },
-      { exact rel_of_nondecreasing_cons h₂ _ hcl' }}}
+      -- refl <|> exact nat.zero_le _ <|> simp [*, nat.succ_le_succ_iff, -not_le] at *,
+       }}
 end
+
+end linear_order
+
+
+--def nondecreasing (l : list α) := sorted (λ x y, ¬ (y < x)) l
+--
+--@[simp] theorem nondecreasing_nil :  nondecreasing ([] : list α) := pairwise.nil
+--
+--lemma nondecreasing.of_cons : nondecreasing (a :: l) → nondecreasing l := pairwise.of_cons
+--
+--theorem nondecreasing.tail {l : list α} (h : nondecreasing l) : nondecreasing l.tail :=
+--h.tail
+--
+--theorem rel_of_nondecreasing_cons {a : α} {l : list α} : nondecreasing (a :: l) →
+--  ∀ b ∈ l, ¬ (b < a) :=
+--rel_of_pairwise_cons
+--
+--@[simp] theorem nondecreasing_cons {a : α} {l : list α} :
+--  nondecreasing (a :: l) ↔ (∀ b ∈ l, ¬ (b < a)) ∧ nondecreasing l :=
+--pairwise_cons
+--
+--theorem nondecreasing.merge : ∀ {l l' : list α}, nondecreasing l → nondecreasing l' →
+--  nondecreasing (merge (≤) l l')
+--| []       []        h₁ h₂ := by simp [merge]
+--| []       (b :: l') h₁ h₂ := by simpa [merge] using h₂
+--| (a :: l) []        h₁ h₂ := by simpa [merge] using h₁
+--| (a :: l) (b :: l') h₁ h₂ := begin
+--  by_cases a ≤ b,
+--  { simp only [merge, h, if_true, nondecreasing_cons, not_false_iff],
+--    refine ⟨λ c hc, _, h₁.of_cons.merge h₂⟩,
+--    { rcases (show c = b ∨ c ∈ l ∨ c ∈ l', by simpa [or.left_comm] using
+--      (perm_merge _ _ _).subset hc) with rfl | hcl | hcl',
+--      { exact not_lt_of_le h},
+--      { exact rel_of_nondecreasing_cons h₁ _ hcl },
+--      { replace hcl' := rel_of_nondecreasing_cons h₂ _ hcl',
+--        contrapose! hcl',
+--        exact lt_of_lt_of_le hcl' h  }}},
+--  { simp only [merge, h, if_false, nondecreasing_cons],
+--    refine ⟨λ c hc, _, h₁.merge h₂.of_cons⟩,
+--    { rcases (show c = a ∨ c ∈ l ∨ c ∈ l', by simpa [or.left_comm] using
+--      (perm_merge _ _ _).subset hc) with rfl | hcl | hcl',
+--      { contrapose! h,
+--        exact le_of_lt h },
+--      { replace hcl := rel_of_nondecreasing_cons h₁ _ hcl,
+--        -- hypotheses `h : ¬a ≤ b` and `hcl : ¬c < a` with goal : `⊢ ¬c < b`, which is impossible
+--        -- to deduce
+--        sorry },
+--      { exact rel_of_nondecreasing_cons h₂ _ hcl' }}}
+--end
 
 end
 
@@ -84,6 +142,7 @@ open finset
 --   (h : fintype.card α = k) : α ↪o fin k := sorry
 --   (univ.order_iso_of_fin h).trans $ (order_iso.set_congr _ _ coe_univ).trans order_iso.set.univ
 
+/-
 namespace fintype
 
 variables {α β : Type*} [linear_order β] (f : α → β)
@@ -315,3 +374,4 @@ begin
 end
 
 end monovary_on
+-/
