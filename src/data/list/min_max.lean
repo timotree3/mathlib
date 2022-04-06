@@ -74,7 +74,7 @@ list.reverse_rec_on l (by simp [eq_comm])
           exact (option.mem_some_iff.mp hm ▸ H)} }}
   end
 
-private theorem not_lt_of_foldl_argmax₂ {f : α → β} {l} : Π {a m : α} {o : option α}, a ∈ l →
+theorem not_lt_of_foldl_argmax₂ {f : α → β} {l} : Π {a m : α} {o : option α}, a ∈ l →
   m ∈ foldl (argmax₂ f) o l → ¬ (f m < f a) :=
 list.reverse_rec_on l
   (λ _ _ _ h, absurd h $ not_mem_nil _)
@@ -134,27 +134,9 @@ end preorder
 section linear_order
 variables [linear_order β]
 
-private theorem le_of_foldl_argmax₂ {f : α → β} {l} : Π {a m : α} {o : option α}, a ∈ l →
+theorem le_of_foldl_argmax₂ {f : α → β} {l} : Π {a m : α} {o : option α}, a ∈ l →
   m ∈ foldl (argmax₂ f) o l → f a ≤ f m :=
-list.reverse_rec_on l
-  (λ _ _ _ h, absurd h $ not_mem_nil _)
-  begin
-    intros tl _ ih _ _ _ h ho,
-    rw [foldl_append, foldl_cons, foldl_nil, argmax₂] at ho,
-    cases hf : foldl (argmax₂ f) o tl,
-    { rw [hf] at ho,
-      rw [foldl_argmax₂_eq_none] at hf,
-      simp [hf.1, hf.2, *] at * },
-    rw [hf, option.mem_def] at ho,
-    dsimp only at ho,
-    cases mem_append.1 h with h h,
-    { refine le_trans (ih h hf) _,
-      have := @le_of_lt _ _ (f val) (f m),
-      split_ifs at ho;
-      simp * at * },
-    { split_ifs at ho;
-      simp [*, le_of_lt] at * }
-  end
+λ _ _ _ ha hm, le_of_not_lt $ not_lt_of_foldl_argmax₂ ha hm
 
 theorem le_argmax_of_mem {f : α → β} {a m : α} {l : list α} : a ∈ l → m ∈ argmax f l → f a ≤ f m :=
 le_of_foldl_argmax₂
@@ -283,20 +265,22 @@ theorem minimum_mem {l : list α} {m : α} : (minimum l : with_bot α) = m → m
 
 @[simp] theorem minimum_eq_none {l : list α} : l.minimum = none ↔ l = [] := argmin_eq_none
 
-theorem not_lt_maximum_of_mem {a m : α} {l : list α} : a ∈ l → (maximum l : with_bot α) = m → ¬ m < a :=
+theorem not_lt_maximum_of_mem {a m : α} {l : list α} :
+  a ∈ l → (maximum l : with_bot α) = m → ¬ m < a :=
 not_lt_argmax_of_mem
 
-theorem minimum_not_lt_of_mem {a m : α} {l : list α} : a ∈ l → (minimum l : with_top α) = m → ¬ a < m :=
+theorem minimum_not_lt_of_mem {a m : α} {l : list α} :
+  a ∈ l → (minimum l : with_top α) = m → ¬ a < m :=
 argmin_not_lt_of_mem
 
 theorem not_lt_maximum_of_mem' {a : α} {l : list α} (ha : a ∈ l) : ¬ maximum l < (a : with_bot α) :=
-sorry
--- option.cases_on (maximum l) (λ _ h, absurd ha ((h rfl).symm ▸ not_mem_nil _))
---   (λ m hm _, with_bot.coe_le_coe.2 $ hm _ rfl)
---   (λ m, @le_maximum_of_mem _ _ _ m _ ha)
---   (@maximum_eq_none _ _ l).1
+begin
+  cases h : l.maximum,
+  { simp * at * },
+  { simp_rw [with_bot.some_eq_coe, with_bot.coe_lt_coe, not_lt_maximum_of_mem ha h, not_false_iff] }
+end
 
-theorem le_minimum_of_mem' {a : α} {l : list α} (ha : a ∈ l) : ¬ (a : with_top α) < minimum l :=
+theorem not_lt_minimum_of_mem' {a : α} {l : list α} (ha : a ∈ l) : ¬ (a : with_top α) < minimum l :=
 @not_lt_maximum_of_mem' (order_dual α) _ _ _ _ ha
 
 end preorder
@@ -323,9 +307,20 @@ begin
   all_goals { refl }
 end
 
+theorem le_maximum_of_mem {a m : α} {l : list α} : a ∈ l → (maximum l : with_bot α) = m → a ≤ m :=
+le_argmax_of_mem
+
+theorem minimum_le_of_mem {a m : α} {l : list α} : a ∈ l → (minimum l : with_top α) = m → m ≤ a :=
+argmin_le_of_mem
+
+theorem le_maximum_of_mem' {a : α} {l : list α} (ha : a ∈ l) : (a : with_bot α) ≤ maximum l :=
+le_of_not_lt $ not_lt_maximum_of_mem' ha
+
+theorem le_minimum_of_mem' {a : α} {l : list α} (ha : a ∈ l) : minimum l ≤ (a : with_top α) :=
+@le_maximum_of_mem' (order_dual α) _ _ _ ha
+
 theorem minimum_concat (a : α) (l : list α) : minimum (l ++ [a]) = min (minimum l) a :=
 @maximum_concat (order_dual α) _ _ _
-
 
 theorem maximum_cons (a : α) (l : list α) : maximum (a :: l) = max a (maximum l) :=
 list.reverse_rec_on l (by simp [@max_eq_left (with_bot α) _ _ _ bot_le])
@@ -355,12 +350,14 @@ end maximum_minimum
 
 section fold
 
-variables [canonically_linear_ordered_add_monoid M]
+variable [canonically_linear_ordered_add_monoid M]
 
 /-! Note: since there is no typeclass typeclass dual
 to `canonically_linear_ordered_add_monoid α` we cannot express these lemmas generally for
 `minimum`; instead we are limited to doing so on `order_dual α`. -/
 
+
+-- why is the instance missing?
 lemma maximum_eq_coe_foldr_max_of_ne_nil (l : list M) (h : l ≠ []) :
   l.maximum = (l.foldr max ⊥ : M) :=
 begin
