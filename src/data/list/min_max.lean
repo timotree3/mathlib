@@ -19,11 +19,12 @@ The main definitions are `argmax`, `argmin`, `minimum` and `maximum` for lists.
 `[]`
 -/
 namespace list
-variables {α : Type*} {β : Type*} [linear_order β]
+section preorder
+variables {α : Type*} {β : Type*} [preorder β] [@decidable_rel β (≤)]
 
 /-- Auxiliary definition to define `argmax` -/
 def argmax₂ (f : α → β) (a : option α) (b : α) : option α :=
-option.cases_on a (some b) (λ c, if f b ≤ f c then some c else some b)
+option.cases_on a (some b) (λ c, if f c ≤ f b then some b else some c)
 
 /-- `argmax f l` returns `some a`, where `a` of `l` that maximises `f a`. If there are `a b` such
 that `f a = f b`, it returns whichever of `a` or `b` comes first in the list.
@@ -35,7 +36,7 @@ l.foldl (argmax₂ f) none
 that `f a = f b`, it returns whichever of `a` or `b` comes first in the list.
 `argmin f []` = none` -/
 def argmin (f : α → β) (l : list α) :=
-@argmax _ (order_dual β) _ f l
+@argmax _ (order_dual β) _ _ f l
 
 @[simp] lemma argmax_two_self (f : α → β) (a : α) : argmax₂ f (some a) a = a :=
 if_pos le_rfl
@@ -53,6 +54,67 @@ if_pos le_rfl
 list.reverse_rec_on l (by simp) $
   (assume tl hd, by simp [argmax₂];
     cases foldl (argmax₂ f) o tl; simp; try {split_ifs}; simp)
+
+private theorem foldl_argmax₂_mem (f : α → β) (l) : Π (a m : α),
+  m ∈ foldl (argmax₂ f) (some a) l → m ∈ a :: l :=
+list.reverse_rec_on l (by simp [eq_comm])
+  begin
+    assume tl hd ih a m,
+    simp only [foldl_append, foldl_cons, foldl_nil, argmax₂],
+    cases hf : foldl (argmax₂ f) (some a) tl,
+    { simp {contextual := tt} },
+    { dsimp only, split_ifs,
+      { simp {contextual := tt} },
+      { -- `finish [ih _ _ hf]` closes this goal
+        rcases ih _ _ hf with rfl | H,
+        { simp only [mem_cons_iff, mem_append, mem_singleton, option.mem_def], tauto },
+        { apply λ hm, or.inr (list.mem_append.mpr $ or.inl _),
+          exact (option.mem_some_iff.mp hm ▸ H)} }}
+  end
+
+private theorem not_lt_of_foldl_argmax₂ {f : α → β} {l} : Π {a m : α} {o : option α}, a ∈ l →
+  m ∈ foldl (argmax₂ f) o l → ¬ (f m < f a) :=
+list.reverse_rec_on l
+  (λ _ _ _ h, absurd h $ not_mem_nil _)
+  begin
+    intros tl _ ih _ _ _ h ho,
+    rw [foldl_append, foldl_cons, foldl_nil, argmax₂] at ho,
+    cases hf : foldl (argmax₂ f) o tl,
+    { rw [hf] at ho,
+      rw [foldl_argmax₂_eq_none] at hf,
+      simp [hf.1, hf.2, *] at * },
+    rw [hf, option.mem_def] at ho,
+    dsimp only at ho,
+    cases mem_append.1 h with h h,
+    { specialize ih h hf,
+      split_ifs at ho,
+      { contrapose! ih,
+        subst ho,
+        exact lt_of_le_of_lt h_1 ih },
+      { simp * at * }},
+    { split_ifs at ho,
+      { simp * at * },
+      { contrapose! h_1,
+        simp [*, le_of_lt] at * }}
+  end
+
+theorem argmax_mem {f : α → β} : Π {l : list α} {m : α}, m ∈ argmax f l → m ∈ l
+| [] m       := by simp
+| (hd::tl) m := by simpa [argmax, argmax₂] using foldl_argmax₂_mem f tl hd m
+
+theorem argmin_mem {f : α → β} : Π {l : list α} {m : α}, m ∈ argmin f l → m ∈ l :=
+@argmax_mem _ (order_dual β) _ _ _
+
+@[simp] theorem argmax_eq_none {f : α → β} {l : list α} : l.argmax f = none ↔ l = [] :=
+by simp [argmax]
+
+@[simp] theorem argmin_eq_none {f : α → β} {l : list α} : l.argmin f = none ↔ l = [] :=
+@argmax_eq_none _ (order_dual β) _ _ _ _
+
+end preorder
+
+section linear_order
+variables {α : Type*} {β : Type*} [linear_order β]
 
 private theorem le_of_foldl_argmax₂ {f : α → β} {l} : Π {a m : α} {o : option α}, a ∈ l →
   m ∈ foldl (argmax₂ f) o l → f a ≤ f m :=
@@ -73,38 +135,8 @@ list.reverse_rec_on l
       split_ifs at ho;
       simp * at * },
     { split_ifs at ho;
-      simp * at * }
+      simp [*, le_of_lt] at * }
   end
-
-private theorem foldl_argmax₂_mem (f : α → β) (l) : Π (a m : α),
-  m ∈ foldl (argmax₂ f) (some a) l → m ∈ a :: l :=
-list.reverse_rec_on l (by simp [eq_comm])
-  begin
-    assume tl hd ih a m,
-    simp only [foldl_append, foldl_cons, foldl_nil, argmax₂],
-    cases hf : foldl (argmax₂ f) (some a) tl,
-    { simp {contextual := tt} },
-    { dsimp only, split_ifs,
-      { -- `finish [ih _ _ hf]` closes this goal
-        rcases ih _ _ hf with rfl | H,
-        { simp only [mem_cons_iff, mem_append, mem_singleton, option.mem_def], tauto },
-        { apply λ hm, or.inr (list.mem_append.mpr $ or.inl _),
-          exact (option.mem_some_iff.mp hm ▸ H)} },
-      { simp {contextual := tt} } }
-  end
-
-theorem argmax_mem {f : α → β} : Π {l : list α} {m : α}, m ∈ argmax f l → m ∈ l
-| [] m       := by simp
-| (hd::tl) m := by simpa [argmax, argmax₂] using foldl_argmax₂_mem f tl hd m
-
-theorem argmin_mem {f : α → β} : Π {l : list α} {m : α}, m ∈ argmin f l → m ∈ l :=
-@argmax_mem _ (order_dual β) _ _
-
-@[simp] theorem argmax_eq_none {f : α → β} {l : list α} : l.argmax f = none ↔ l = [] :=
-by simp [argmax]
-
-@[simp] theorem argmin_eq_none {f : α → β} {l : list α} : l.argmin f = none ↔ l = [] :=
-@argmax_eq_none _ (order_dual β) _ _ _
 
 theorem le_argmax_of_mem {f : α → β} {a m : α} {l : list α} : a ∈ l → m ∈ argmax f l → f a ≤ f m :=
 le_of_foldl_argmax₂
@@ -274,6 +306,8 @@ end
 theorem minimum_eq_coe_iff {m : α} {l : list α} :
   minimum l = m ↔ m ∈ l ∧ (∀ a ∈ l, m ≤ a) :=
 @maximum_eq_coe_iff (order_dual α) _ _ _
+
+end linear_order
 
 section fold
 

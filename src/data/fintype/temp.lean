@@ -10,7 +10,9 @@ section
 
 open list
 
-variables {α : Type*} [preorder α] [@decidable_rel α (≤)] {a : α} {l : list α}
+variables {α : Type*} {β : Type*} [preorder β] [@decidable_rel β (≤)] {l : list α}
+
+
 
 def nondecreasing (l : list α) := sorted (λ x y, ¬ (y < x)) l
 
