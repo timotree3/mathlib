@@ -82,18 +82,15 @@ end
 end fold
 
 section order
+variables [linear_order α]
 
-lemma max_le_of_forall_le {α : Type*} [canonically_linear_ordered_add_monoid α]
-  (l : multiset α) (n : α) (h : ∀ (x ∈ l), x ≤ n) :
-  l.fold max ⊥ ≤ n :=
-begin
-  induction l using quotient.induction_on,
-  simpa using list.max_le_of_forall_le _ _ h
-end
+lemma max_le_of_forall_le [order_bot α] (s : multiset α) (a : α) (h : ∀ x ∈ s, x ≤ a) :
+  s.fold max ⊥ ≤ a :=
+by { induction s using quotient.induction_on, exact list.max_le_of_forall_le _ _ h }
 
-lemma max_nat_le_of_forall_le (l : multiset ℕ) (n : ℕ) (h : ∀ (x ∈ l), x ≤ n) :
-  l.fold max 0 ≤ n :=
-max_le_of_forall_le l n h
+lemma le_min_of_forall_le [order_top α] (s : multiset α) (a : α) (h : ∀ x ∈ s, a ≤ x) :
+  a ≤ s.fold min ⊤ :=
+by { induction s using quotient.induction_on, exact list.le_min_of_forall_le _ _ h }
 
 end order
 

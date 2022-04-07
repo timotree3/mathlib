@@ -37,8 +37,7 @@ lemma nat_degree_det_X_add_C_le (A B : matrix n n α) :
   nat_degree (det ((X : α[X]) • A.map C + B.map C)) ≤ fintype.card n :=
 begin
   rw det_apply,
-  refine (nat_degree_sum_le _ _).trans _,
-  refine (multiset.max_nat_le_of_forall_le _ _ _),
+  refine (nat_degree_sum_le _ _).trans (multiset.max_le_of_forall_le _ _ _),
   simp only [forall_apply_eq_imp_iff', true_and, function.comp_app, multiset.map_map,
                multiset.mem_map, exists_imp_distrib, finset.mem_univ_val],
   intro g,

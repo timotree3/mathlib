@@ -18,11 +18,12 @@ The main definitions are `argmax`, `argmin`, `minimum` and `maximum` for lists.
 `minimum l` returns an `with_top α`, the smallest element of `l` for nonempty lists, and `⊤` for
 `[]`
 -/
+
 namespace list
 
-variables {α : Type*} {β : Type*} {M : Type*}
+variables {α β : Type*}
 section preorder
-variables [preorder β] [@decidable_rel β (≤)]
+variables [preorder β] [@decidable_rel β (<)]
 
 /-- Auxiliary definition to define `argmax` -/
 def argmax₂ (f : α → β) (a : option α) (b : α) : option α :=
@@ -146,29 +147,25 @@ theorem argmin_le_of_mem {f : α → β} {a m : α} {l : list α} : a ∈ l → 
 
 theorem argmax_cons (f : α → β) (a : α) (l : list α) : argmax f (a :: l) =
   option.cases_on (argmax f l) (some a) (λ c, if f a < f c then some c else some a) :=
-list.reverse_rec_on l rfl $
-  assume hd tl ih,  begin
+list.reverse_rec_on l rfl $λ hd tl ih, begin
     rw [← cons_append, argmax_concat, ih, argmax_concat],
     cases h : argmax f hd with m,
-    { simp [h], congr },
-    { simp [h], dsimp,
-      by_cases ham : f a < f m,
-      { rw if_pos ham, dsimp,
-        by_cases hmtl : f m < f tl,
-        { -- why do rewrites not work here
-        --  rw if_pos hmtl, dsimp,
-        --  rw if_pos (le_trans ham hmtl) },
-        --{ rw if_neg hmtl, dsimp,
-        --  rw if_pos ham }
-          sorry },
-          sorry },
-      { rw if_neg ham, dsimp,
-        by_cases hmtl : f m < f tl,
-        { -- rw if_pos hmtl
-          sorry },
-        { --rw if_neg hmtl, dsimp,
-          --rw [if_neg ham, if_neg $ not_le_of_lt $ lt_trans (not_le.mp hmtl) (not_le.mp ham)]
-          sorry }}}
+    { simp [h] },
+    simp [h], dsimp,
+    by_cases ham : f a < f m,
+    { rw if_pos ham, dsimp,
+      by_cases hmtl : f m < f tl,
+      { rw if_pos hmtl,
+        dsimp,
+        rw if_pos (ham.trans hmtl) },
+      { rw if_neg hmtl,
+        dsimp,
+        rw if_pos ham } },
+    { rw if_neg ham, dsimp,
+      by_cases hmtl : f m < f tl,
+      { rw if_pos hmtl },
+      { rw if_neg hmtl, dsimp,
+        rw [if_neg ham, if_neg ((not_lt.mp hmtl).trans $ not_lt.mp ham).not_lt] } }
   end
 
 theorem argmin_cons (f : α → β) (a : α) (l : list α) : argmin f (a :: l) =
@@ -239,7 +236,7 @@ end linear_order
 
 section maximum_minimum
 section preorder
-variables [preorder α] [@decidable_rel α (≤)]
+variables [preorder α] [@decidable_rel α (<)]
 
 /-- `maximum l` returns an `with_bot α`, the largest element of `l` for nonempty lists, and `⊥` for
 `[]`  -/
@@ -349,17 +346,12 @@ end linear_order
 end maximum_minimum
 
 section fold
+variables [linear_order α]
 
-variable [canonically_linear_ordered_add_monoid M]
+section order_bot
+variables [order_bot α] {l : list α}
 
-/-! Note: since there is no typeclass typeclass dual
-to `canonically_linear_ordered_add_monoid α` we cannot express these lemmas generally for
-`minimum`; instead we are limited to doing so on `order_dual α`. -/
-
-
--- why is the instance missing?
-lemma maximum_eq_coe_foldr_max_of_ne_nil (l : list M) (h : l ≠ []) :
-  l.maximum = (l.foldr max ⊥ : M) :=
+@[simp] lemma foldr_max_of_ne_nil (h : l ≠ []) : ↑(l.foldr max ⊥) = l.maximum :=
 begin
   induction l with hd tl IH,
   { contradiction },
@@ -369,33 +361,24 @@ begin
     { simp [IH h] } }
 end
 
-lemma minimum_eq_coe_foldr_min_of_ne_nil (l : list (order_dual M)) (h : l ≠ []) :
-  l.minimum = (l.foldr min ⊤ : order_dual M) :=
-maximum_eq_coe_foldr_max_of_ne_nil l h
-
-lemma maximum_nat_eq_coe_foldr_max_of_ne_nil (l : list ℕ) (h : l ≠ []) :
-  l.maximum = (l.foldr max 0 : ℕ) :=
-maximum_eq_coe_foldr_max_of_ne_nil l h
-
-lemma max_le_of_forall_le (l : list M) (n : M) (h : ∀ (x ∈ l), x ≤ n) :
-  l.foldr max ⊥ ≤ n :=
+lemma max_le_of_forall_le (l : list α) (a : α) (h : ∀ x ∈ l, x ≤ a) : l.foldr max ⊥ ≤ a :=
 begin
   induction l with y l IH,
   { simp },
-  { specialize IH (λ x hx, h x (mem_cons_of_mem _ hx)),
-    have hy : y ≤ n := h y (mem_cons_self _ _),
-    simpa [hy] using IH }
+  { simpa [h y (mem_cons_self _ _)] using IH (λ x hx, h x $ mem_cons_of_mem _ hx) }
 end
 
-lemma le_min_of_le_forall (l : list (order_dual M)) (n : (order_dual M))
-  (h : ∀ (x ∈ l), n ≤ x) :
-  n ≤ l.foldr min ⊤ :=
-max_le_of_forall_le l n h
+end order_bot
 
-lemma max_nat_le_of_forall_le (l : list ℕ) (n : ℕ) (h : ∀ (x ∈ l), x ≤ n) :
-  l.foldr max 0 ≤ n :=
-max_le_of_forall_le l n h
+section order_top
+variables [order_top α] {l : list α}
 
+@[simp] lemma foldr_min_of_ne_nil (h : l ≠ []) : ↑(l.foldr min ⊤) = l.minimum :=
+@foldr_max_of_ne_nil (order_dual α) _ _ _ h
+
+lemma le_min_of_forall_le (l : list α) (a : α) (h : ∀ x ∈ l, a ≤ x) : a ≤ l.foldr min ⊤ :=
+@max_le_of_forall_le (order_dual α) _ _ _ _ h
+
+end order_top
 end fold
-
 end list
