@@ -145,6 +145,18 @@ begin
     exact mem_map_of_mem _ (commutator_mem_commutator hp hq) }
 end
 
+variables {H₁ H₂}
+
+lemma commutator_le_map_commutator {f : G →* G'} {K₁ K₂ : subgroup G'}
+  (h₁ : K₁ ≤ H₁.map f) (h₂ : K₂ ≤ H₂.map f) : ⁅K₁, K₂⁆ ≤ ⁅H₁, H₂⁆.map f :=
+(map_commutator H₁ H₂ f).symm ▸ commutator_mono h₁ h₂
+
+lemma map_commutator_le_commutator {f : G →* G'} {K₁ K₂ : subgroup G'}
+  (h₁ : H₁.map f ≤ K₁) (h₂ : H₂.map f ≤ K₂) : ⁅H₁, H₂⁆.map f ≤ ⁅K₁, K₂⁆ :=
+(map_commutator H₁ H₂ f).symm ▸ commutator_mono h₁ h₂
+
+variables (H₁ H₂)
+
 lemma commutator_prod_prod (K₁ K₂ : subgroup G') :
   ⁅H₁.prod K₁, H₂.prod K₂⁆ = ⁅H₁, H₂⁆.prod ⁅K₁, K₂⁆ :=
 begin
@@ -152,22 +164,10 @@ begin
   { rw commutator_le,
     rintros ⟨p₁, p₂⟩ ⟨hp₁, hp₂⟩ ⟨q₁, q₂⟩ ⟨hq₁, hq₂⟩,
     exact ⟨commutator_mem_commutator hp₁ hq₁, commutator_mem_commutator hp₂ hq₂⟩ },
-  { rw prod_le_iff, split;
-    { rw map_commutator,
-      apply commutator_mono;
-      simp [le_prod_iff, map_map, monoid_hom.fst_comp_inl, monoid_hom.snd_comp_inl,
-        monoid_hom.fst_comp_inr, monoid_hom.snd_comp_inr ], }, }
+  { rw prod_le_iff, split; apply map_commutator_le_commutator;
+    simp [le_prod_iff, map_map, monoid_hom.fst_comp_inl, monoid_hom.snd_comp_inl,
+      monoid_hom.fst_comp_inr, monoid_hom.snd_comp_inr ], }
 end
-
-variables {H₁ H₂}
-
-lemma commutator_le_map_commutator {f : G →* G'} {K₁ K₂ : subgroup G'}
-  (h₁ : K₁ ≤ H₁.map f) (h₂ : K₂ ≤ H₂.map f) : ⁅K₁, K₂⁆ ≤ ⁅H₁, H₂⁆.map f :=
-(commutator_mono h₁ h₂).trans (ge_of_eq (map_commutator H₁ H₂ f))
-
-lemma commutator_le_map_commutator₂ {f : G →* G'} {K₁ : subgroup G'} (h₁ : K₁ ≤ H₁.map f) :
-  ⁅K₁, K₁⁆ ≤ ⁅H₁, H₁⁆.map f :=
-commutator_le_map_commutator h₁ h₁
 
 /-- The commutator of direct product is contained in the direct product of the commutators.
 
@@ -186,9 +186,8 @@ lemma commutator_pi_pi_of_fintype {η : Type*} [fintype η] {Gs : η → Type*}
 begin
   classical,
   apply le_antisymm (commutator_pi_pi_le H K),
-  { rw pi_le_iff, intros i hi,
-    rw map_commutator,
-    apply commutator_mono;
+  { rw pi_le_iff, intro i,
+    apply map_commutator_le_commutator;
     { rw le_pi_iff,
       intros j hj,
       rintros _ ⟨_, ⟨x, hx, rfl⟩, rfl⟩,
