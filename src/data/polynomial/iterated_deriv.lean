@@ -27,34 +27,7 @@ section semiring
 variables [semiring R] (r : R) (f p q : R[X]) (n k : ℕ)
 
 /-- `iterated_deriv f n` is the `n`-th formal derivative of the polynomial `f` -/
-def iterated_deriv : R[X] := derivative ^[n] f
-
-@[simp] lemma iterated_deriv_zero_right : iterated_deriv f 0 = f := rfl
-
-lemma iterated_deriv_succ : iterated_deriv f (n + 1) = (iterated_deriv f n).derivative :=
-by rw [iterated_deriv, iterated_deriv, function.iterate_succ']
-
-@[simp] lemma iterated_deriv_zero_left : iterated_deriv (0 : R[X]) n = 0 :=
-begin
-  induction n with n hn,
-  { exact iterated_deriv_zero_right _ },
-  { rw [iterated_deriv_succ, hn, derivative_zero] },
-end
-
-@[simp] lemma iterated_deriv_add :
-  iterated_deriv (p + q) n = iterated_deriv p n + iterated_deriv q n :=
-begin
-  induction n with n ih,
-  { simp only [iterated_deriv_zero_right], },
-  { simp only [iterated_deriv_succ, ih, derivative_add] }
-end
-
-@[simp] lemma iterated_deriv_smul : iterated_deriv (r • p) n = r • iterated_deriv p n :=
-begin
-  induction n with n ih,
-  { simp only [iterated_deriv_zero_right] },
-  { simp only [iterated_deriv_succ, ih, derivative_smul] }
-end
+def iterated_deriv : R[X] := derivative^[n] f
 
 @[simp] lemma iterated_deriv_X_zero : iterated_deriv (X : R[X]) 0 = X :=
 by simp only [iterated_deriv_zero_right]
@@ -73,7 +46,6 @@ begin
       rw ih h, simp only [derivative_zero] } }
 end
 
-
 @[simp] lemma iterated_deriv_C_zero : iterated_deriv (C r) 0 = C r :=
 by simp only [iterated_deriv_zero_right]
 
@@ -90,30 +62,10 @@ end
 @[simp] lemma iterated_deriv_one_zero : iterated_deriv (1 : R[X]) 0 = 1 :=
 by simp only [iterated_deriv_zero_right]
 
-@[simp] lemma iterated_deriv_one : 0 < n → iterated_deriv (1 : R[X]) n = 0 := λ h,
-begin
-  have eq1 : (1 : R[X]) = C 1 := by simp only [ring_hom.map_one],
-  rw eq1, exact iterated_deriv_C _ _ h,
-end
+@[simp] lemma iterated_deriv_one : 0 < n → iterated_deriv (1 : R[X]) n = 0 :=
+iterated_deriv_C _ _
 
 end semiring
-
-section ring
-variables [ring R] (p q : R[X]) (n : ℕ)
-
-@[simp] lemma iterated_deriv_neg : iterated_deriv (-p) n = - iterated_deriv p n :=
-begin
-  induction n with n ih,
-  { simp only [iterated_deriv_zero_right] },
-  { simp only [iterated_deriv_succ, ih, derivative_neg] }
-end
-
-@[simp] lemma iterated_deriv_sub :
-  iterated_deriv (p - q) n = iterated_deriv p n - iterated_deriv q n :=
-by rw [sub_eq_add_neg, iterated_deriv_add, iterated_deriv_neg, ←sub_eq_add_neg]
-
-
-end ring
 
 section comm_semiring
 variable [comm_semiring R]

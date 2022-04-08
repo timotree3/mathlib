@@ -60,13 +60,7 @@ end
 lemma derivative_zero : derivative (0 : R[X]) = 0 :=
 derivative.map_zero
 
-@[simp]
-lemma iterate_derivative_zero {k : ℕ} : derivative^[k] (0 : R[X]) = 0 :=
-begin
-  induction k with k ih,
-  { simp, },
-  { simp [ih], },
-end
+@[simp] lemma iterate_derivative_zero {k : ℕ} : (derivative ^ k) (0 : R[X]) = 0 := _root_.map_zero _
 
 @[simp]
 lemma derivative_monomial (a : R) (n : ℕ) : derivative (monomial n a) = monomial (n - 1) (a * n) :=
@@ -102,8 +96,7 @@ by simp [bit1]
 derivative.map_add f g
 
 @[simp] lemma iterate_derivative_add {f g : R[X]} {k : ℕ} :
-  derivative^[k] (f + g) = (derivative^[k] f) + (derivative^[k] g) :=
-derivative.to_add_monoid_hom.iterate_map_add _ _ _
+  (derivative ^ k) (f + g) = (derivative ^ k) f + (derivative ^ k) g := _root_.map_add _ _ _
 
 @[simp] lemma derivative_sum {s : finset ι} {f : ι → R[X]} :
   derivative (∑ b in s, f b) = ∑ b in s, derivative (f b) :=
@@ -113,12 +106,7 @@ derivative.map_sum
 derivative.map_smul _ _
 
 @[simp] lemma iterate_derivative_smul (r : R) (p : R[X]) (k : ℕ) :
-  derivative^[k] (r • p) = r • (derivative^[k] p) :=
-begin
-  induction k with k ih generalizing p,
-  { simp, },
-  { simp [ih], },
-end
+  (derivative ^ k) (r • p) = r • ((derivative ^ k) p) := linear_map.map_smul _ _ _
 
 /- We can't use `derivative_mul` here because
 we want to prove this statement also for noncommutative rings.-/
@@ -128,7 +116,7 @@ by convert derivative_smul a p; apply C_mul'
 
 @[simp]
 lemma iterate_derivative_C_mul (a : R) (p : R[X]) (k : ℕ) :
-  derivative^[k] (C a * p) = C a * (derivative^[k] p) :=
+  (derivative ^ k) (C a * p) = C a * ((derivative ^ k) p) :=
 by convert iterate_derivative_smul a p k; apply C_mul'
 
 theorem of_mem_support_derivative {p : R[X]} {n : ℕ} (h : n ∈ p.derivative.support) :
@@ -167,12 +155,12 @@ begin
 end
 
 lemma iterate_derivative_eq_zero {p : R[X]} {x : ℕ} (hx : p.nat_degree < x) :
-  polynomial.derivative^[x] p = 0 :=
+  (derivative ^ x) p = 0 :=
 begin
   induction h : p.nat_degree using nat.strong_induction_on with _ ih generalizing p x,
   subst h,
   obtain ⟨t, rfl⟩ := nat.exists_eq_succ_of_ne_zero (pos_of_gt hx).ne',
-  rw [function.iterate_succ_apply],
+  rw [pow_succ', linear_map.mul_apply],
   by_cases hp : p.nat_degree = 0,
   { rw [derivative_of_nat_degree_zero hp, iterate_derivative_zero] },
   have := nat_degree_derivative_lt hp,
@@ -271,11 +259,12 @@ polynomial.induction_on p
 
 @[simp]
 theorem iterate_derivative_map [comm_semiring S] (p : R[X]) (f : R →+* S) (k : ℕ):
-  polynomial.derivative^[k] (p.map f) = (polynomial.derivative^[k] p).map f :=
+  (derivative ^ k) (p.map f) = ((derivative ^ k) p).map f :=
 begin
   induction k with k ih generalizing p,
-  { simp, },
-  { simp [ih], },
+  { simp },
+  { rw [pow_succ, linear_map.mul_apply, ih, derivative_map],
+    refl }
 end
 
 /-- Chain rule for formal derivative of polynomials. -/
@@ -307,8 +296,11 @@ begin
 end
 
 @[simp] lemma iterate_derivative_cast_nat_mul {n k : ℕ} {f : R[X]} :
-  derivative^[k] (n * f) = n * (derivative^[k] f) :=
-by induction k with k ih generalizing f; simp*
+  (derivative ^ k) (n * f) = n * ((derivative ^ k) f) :=
+begin
+  simp only [nat_cast_mul],
+  exact map_nsmul _ _ _
+end
 
 end comm_semiring
 
@@ -320,16 +312,16 @@ variables [ring R]
 linear_map.map_neg derivative f
 
 @[simp] lemma iterate_derivative_neg {f : R[X]} {k : ℕ} :
-  derivative^[k] (-f) = - (derivative^[k] f) :=
-(@derivative R _).to_add_monoid_hom.iterate_map_neg _ _
+  (derivative ^ k) (-f) = - ((derivative ^ k) f) :=
+_root_.map_neg _ _
 
 @[simp] lemma derivative_sub {f g : R[X]} :
   derivative (f - g) = derivative f - derivative g :=
 linear_map.map_sub derivative f g
 
 @[simp] lemma iterate_derivative_sub {k : ℕ} {f g : R[X]} :
-  derivative^[k] (f - g) = (derivative^[k] f) - (derivative^[k] g) :=
-by induction k with k ih generalizing f g; simp*
+  (derivative ^ k) (f - g) = ((derivative ^ k) f) - ((derivative ^ k) g) :=
+_root_.map_sub _ _ _
 
 end ring
 
@@ -342,11 +334,12 @@ by simp [derivative_comp]
 
 @[simp]
 lemma iterate_derivative_comp_one_sub_X (p : R[X]) (k : ℕ) :
-  derivative^[k] (p.comp (1-X)) = (-1)^k * (derivative^[k] p).comp (1-X) :=
+  (derivative ^ k) (p.comp (1 - X)) = (-1)^k * ((derivative ^ k) p).comp (1 - X) :=
 begin
   induction k with k ih generalizing p,
   { simp, },
-  { simp [ih p.derivative, iterate_derivative_neg, derivative_comp, pow_succ], },
+  { rw [pow_succ', linear_map.mul_apply, derivative_comp_one_sub_X, iterate_derivative_neg, ih,
+        ←linear_map.mul_apply, ←neg_mul, neg_eq_neg_one_mul, pow_succ] },
 end
 
 lemma eval_multiset_prod_X_sub_C_derivative {S : multiset R} {r : R} (hr : r ∈ S) :
