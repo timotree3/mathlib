@@ -149,13 +149,14 @@ variables {H₁ H₂}
 
 lemma commutator_le_map_commutator {f : G →* G'} {K₁ K₂ : subgroup G'}
   (h₁ : K₁ ≤ H₁.map f) (h₂ : K₂ ≤ H₂.map f) : ⁅K₁, K₂⁆ ≤ ⁅H₁, H₂⁆.map f :=
-(map_commutator H₁ H₂ f).symm ▸ commutator_mono h₁ h₂
-
-lemma map_commutator_le_commutator {f : G →* G'} {K₁ K₂ : subgroup G'}
-  (h₁ : H₁.map f ≤ K₁) (h₂ : H₂.map f ≤ K₂) : ⁅H₁, H₂⁆.map f ≤ ⁅K₁, K₂⁆ :=
-(map_commutator H₁ H₂ f).symm ▸ commutator_mono h₁ h₂
+(commutator_mono h₁ h₂).trans (ge_of_eq (map_commutator H₁ H₂ f))
 
 variables (H₁ H₂)
+
+instance commutator_characteristic [h₁ : characteristic H₁] [h₂ : characteristic H₂] :
+  characteristic ⁅H₁, H₂⁆ :=
+characteristic_iff_le_map.mpr (λ ϕ, commutator_le_map_commutator
+  (characteristic_iff_le_map.mp h₁ ϕ) (characteristic_iff_le_map.mp h₂ ϕ))
 
 lemma commutator_prod_prod (K₁ K₂ : subgroup G') :
   ⁅H₁.prod K₁, H₂.prod K₂⁆ = ⁅H₁, H₂⁆.prod ⁅K₁, K₂⁆ :=

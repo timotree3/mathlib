@@ -123,8 +123,7 @@ lemma solvable_of_ker_le_range {G' G'' : Type*} [group G'] [group G''] (f : G' �
 begin
   obtain ⟨n, hn⟩ := id hG'',
   obtain ⟨m, hm⟩ := id hG',
-  use n + m,
-  rw [eq_bot_iff, ←map_bot f, ←hm],
+  refine ⟨⟨n + m, le_bot_iff.mp (map_bot f ▸ (hm ▸ _))⟩⟩,
   clear hm,
   induction m with m hm,
   { exact f.range_eq_map ▸ ((derived_series G n).map_eq_bot_iff.mp (le_bot_iff.mp
