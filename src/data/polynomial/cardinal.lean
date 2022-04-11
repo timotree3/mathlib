@@ -18,7 +18,9 @@ open cardinal
 
 namespace polynomial
 
-lemma cardinal_mk_le_max {R : Type u} [comm_semiring R] : #R[X] ≤ max (#R) ω :=
+variables (R : Type u) [comm_semiring R]
+
+lemma cardinal_mk_le_max : #R[X] ≤ max (#R) ω :=
 calc #R[X] = #(mv_polynomial punit.{u + 1} R) :
   cardinal.eq.2 ⟨(mv_polynomial.punit_alg_equiv.{u u} R).to_equiv.symm⟩
 ... ≤ _ : mv_polynomial.cardinal_mk_le_max
@@ -27,7 +29,18 @@ calc #R[X] = #(mv_polynomial punit.{u + 1} R) :
   rw [max_assoc, max_eq_right this]
 end
 
-@[simp] lemma cardinal_mk_eq_of_infinite {R : Type u} [comm_semiring R] [infinite R] : #R[X] = #R :=
-le_antisymm (by { convert cardinal_mk_le_max, simp }) (mk_le_of_injective (λ a b h, C_inj.1 h))
+@[simp] lemma cardinal_mk_eq_of_infinite [infinite R] : #R[X] = #R :=
+le_antisymm (by { convert cardinal_mk_le_max R, simp }) (mk_le_of_injective (λ a b h, C_inj.1 h))
+
+@[simp] lemma cardinal_mk_eq_of_fintype_of_nontrivial [fintype R] [nontrivial R] : #R[X] = ω :=
+begin
+  apply le_antisymm,
+  {
+    convert cardinal_mk_le_max R,
+    rw [max_eq_right],
+    apply le_of_lt,
+    apply lt_omega_iff_fintype.2 (infer_instance),
+  }
+end
 
 end polynomial
