@@ -36,8 +36,10 @@ begin
     convert cardinal_mk_le_max R,
     rw [max_eq_right],
     apply le_of_lt,
-    apply lt_omega_iff_fintype.2 (infer_instance),
-  }
+    apply lt_omega_of_fintype,
+    sorry,
+  },
+  sorry
 end
 
 end polynomial
