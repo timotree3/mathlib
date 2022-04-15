@@ -1,7 +1,39 @@
 import algebraic_geometry.EllipticCurve
 import tactic
 
+namespace tactic.interactive
+
+meta def show_nonzero := `[
+  apply_rules [
+    mul_ne_zero,
+    sub_ne_zero.2,
+    ne.symm,
+    ne_of_gt,
+    ne_of_lt
+    ],
+  all_goals {try {norm_num}}
+]
+
+meta def clear_denoms := `[
+  try {rw div_eq_div_iff},
+  try {rw eq_div_iff},
+  try {symmetry, rw eq_div_iff},
+  try { ring_exp },
+  all_goals {show_nonzero}
+]
+
+meta def discrete_field := `[
+  try {field_simp},
+  try {clear_denoms},
+  try {ring_exp}
+]
+
+end tactic.interactive
+
 noncomputable theory
+
+lemma better_split (P Q : Prop) : P ∧ Q ↔ (P ∧ (P → Q))
+:= ⟨λ h, ⟨h.1, λ _, h.2⟩, λ h, ⟨h.1, h.2 h.1⟩⟩
 
 namespace EllipticCurve
 
@@ -61,14 +93,10 @@ instance : has_zero (points E) := ⟨zero⟩
 
 
 lemma mk_coe {P : points E} (h : P ≠ zero) (hxy) :
-  some P.x P.y hxy = P :=
-begin
-  cases P;tauto,
-end
+  some P.x P.y hxy = P := by {cases P; tauto}
 
-@[simp] lemma coe_mk_x {x y : K} (h) : (@points.some _ _ E x y h).x = x := rfl
-
-@[simp] lemma coe_mk_y {x y : K} (h) : (@points.some _ _ E x y h).y = y := rfl
+@[simp] lemma coe_mk_x {x y : K} (h : satisfies_equation E x y) : (some x y h).x = x := rfl
+@[simp] lemma coe_mk_y {x y : K} (h : satisfies_equation E x y) : (some x y h).y = y := rfl
 
 lemma eq_of_eq_xy {P Q : points E} (hPnz : P ≠ 0) (hQnz : Q ≠ 0) (hx : P.x = Q.x)
 (hy : P.y = Q.y) : P = Q :=
@@ -85,8 +113,14 @@ begin
   exact P_h,
 end
 
-@[simp]
-lemma some_ne_zero {E : EllipticCurve K} {x y : K} {h} : @points.some _ _ E x y h ≠ zero := by tauto
+lemma some_ne_zero {E : EllipticCurve K} {x y : K} {h: satisfies_equation E x y} :
+  some x y h ≠ zero := by tauto
+
+lemma no_repeated_roots {E : EllipticCurve K} {x y : K} (h : satisfies_equation E x y)
+(h' : y + y + E.a1 * x + E.a3 = 0) : 3*x*x + 2*E.a2*x + E.a4 - E.a1 * y ≠ 0 :=
+begin
+  sorry
+end
 
 /--
 
@@ -122,6 +156,7 @@ begin
   ring,
 end
 
+@[simp]
 def neg : points E → points E
 | zero := zero
 | (some t s h) := some t (-E.a3 - E.a1 * t - s) (neg_formula h)
@@ -137,16 +172,12 @@ theorem neg_neg : ∀ P : points E, neg (neg P) = P
 lemma eq_neg_iff_neg_eq (P Q : points E) : neg P = Q ↔ P = neg Q :=
 begin
   split,
-  {
-    intro h,
+  { intro h,
     rw ←h,
-    simp,
-  },
-  {
-    intro h,
+    exact (neg_neg P).symm },
+  { intro h,
     rw h,
-    simp,
-  }
+    exact neg_neg Q }
 end
 
 /-
@@ -190,16 +221,15 @@ compute `s₃` is that it's equal to `lt₃+m` where
 -/
 
 @[simp] lemma neg_some {x y : K} (h : satisfies_equation E x y) :
-neg (some x y h) = some x (-E.a3 - E.a1 * x - y) (neg_formula h) := rfl
+- (some x y h) = some x (-E.a3 - E.a1 * x - y) (neg_formula h) := rfl
 
 lemma add_neg_formula {t₁ t₂ s₁ s₂ : K} (h : t₁ ≠ t₂)
 (h₁ : satisfies_equation E t₁ s₁) (h₂ : satisfies_equation E t₂ s₂)
-: let l :=(s₁-s₂)/(t₁-t₂) in let m :=  s₁ - l * t₁ in let t₃ :=l*l+E.a1*l-E.a2-t₁-t₂ in
-satisfies_equation E t₃ (l*t₃+m) :=
+: let l :=(s₁-s₂)/(t₁-t₂) in let t₃ :=l*l+E.a1*l-E.a2-t₁-t₂ in
+satisfies_equation E t₃ (s₁ + l*t₃ -l*t₁) :=
 begin
   simp only [satisfies_equation] at h₁ h₂ ⊢,
   set l :=(s₁-s₂)/(t₁-t₂) with ←hl,
-  set m :=  s₁ - l * t₁ with ←hm,
   set t₃ :=l*l+E.a1*l-E.a2-t₁-t₂ with ←h₃,
   replace h := sub_ne_zero.mpr h,
   apply eq.symm,
@@ -210,7 +240,7 @@ begin
   apply (is_unit.mul_left_eq_zero (is_unit.mk0 _ h)).mp,
   suffices : (t₃ - E.a1*l - l^2 + E.a2 + t₁ + t₂)*(t₃-t₁)*(t₃-t₂)*(t₁-t₂) +
   (t₃-t₁)*((E.a1*t₂ + E.a3 + l*(t₂-t₁)+s₁+s₂)*z₃ + z₂ - z₁)-(t₁-t₂)*z₁ = 0,
-  by {simp [←this, z₁, z₂, z₃, m], ring },
+  by {simp [←this, z₁, z₂, z₃], ring },
   rw show z₁ = 0, by {simp [z₁, h₁], ring},
   rw show z₂ = 0, by {simp [z₂, h₂], ring},
   rw show z₃ = 0, by {simp [z₃], field_simp [h], ring},
@@ -218,17 +248,31 @@ begin
   ring,
 end
 
+lemma add_formula {t₁ t₂ s₁ s₂ : K} (h : t₁ ≠ t₂)
+(h₁ : satisfies_equation E t₁ s₁) (h₂ : satisfies_equation E t₂ s₂)
+: let l :=(s₁-s₂)/(t₁-t₂) in let t₃ :=l*l+E.a1*l-E.a2-t₁-t₂ in
+satisfies_equation E t₃ (-E.a3 - E.a1 * t₃ - (s₁ + l * t₃ - l * t₁)) :=
+begin
+  set l := (s₁ - s₂) / (t₁ - t₂),
+  set t₃ :=l*l+E.a1*l-E.a2-t₁-t₂,
+  have H : -E.a3 - E.a1 * t₃ - l * t₃ + l * t₁ - s₁ = -E.a3 - E.a1 * t₃ - (s₁ + l * t₃ - l * t₁),
+  { ring },
+  simp only [H],
+  exact neg_formula (add_neg_formula h h₁ h₂),
+end
+
 lemma double_formula {x y : K} (h : satisfies_equation E x y) (h' : y + y + E.a1 * x + E.a3 ≠ 0)
-: let l := (3*x*x+2*E.a2*x+E.a4 - E.a1*y)/(2*y+E.a1*x+E.a3) in let t₃ := l^2+E.a1*l-E.a2-2*x in
-  satisfies_equation E t₃ (-E.a1 * t₃ - E.a3 - l * t₃ + l * x - y) :=
+: let l := (3*x*x+2*E.a2*x+E.a4 - E.a1*y)/(2*y+E.a1*x+E.a3) in let t₃ := l*l+E.a1*l-E.a2-x-x in
+  satisfies_equation E t₃ (-E.a3 - E.a1 * t₃ - (y + l * t₃ - l * x)) :=
+  --(-E.a3 -E.a1 * t₃ - l * t₃ + l * x - y) :=
 begin
   simp only [satisfies_equation],
   rw ← two_mul at h', -- s+s -> 2s because that's the denominator.
   set l := (3*x*x+2*E.a2*x+E.a4 - E.a1*y)/(2*y+E.a1*x+E.a3),
-  set t₃ := l^2+E.a1*l-E.a2-2*x,
-  let z₃ := t₃ - E.a1 * l - l ^ 2 + E.a2 + 2 * x,
+  set t₃ := l*l+E.a1*l-E.a2-x-x,
+  let z₃ := t₃ - E.a1 * l - l ^ 2 + E.a2 + 2*x,
   set w := l * t₃ - l * x + y with hw,
-  suffices : t₃ ^ 3 + E.a2 * t₃ ^ 2 + E.a4 * t₃ + E.a6 = w^2 + E.a1 * t₃ * w + E.a3 * w,
+  suffices : t₃ ^ 3 + E.a2 * t₃ ^ 2 + E.a4 * t₃ + E.a6 = w*w + E.a1 * t₃ * w + E.a3 * w,
     by {rw [this, hw], ring},
   suffices : z₃*(t₃-x)^2 + (3*x^2 + 2*E.a2*x + E.a4 - E.a1*(y+x*l) - E.a3*l - 2*y*l)*t₃
   + E.a1*x^2*l - E.a2*x^2 - 2*x^3 + E.a3*x*l + 2*x*y*l - E.a3*y - y^2 + E.a6 = 0,
@@ -240,14 +284,8 @@ begin
   field_simp [h'], ring,
 end
 
-lemma double_formula' {P : points E} (h : P ≠ 0) (h' : P.y + P.y + E.a1 * P.x + E.a3 ≠ 0) :
-let l := (3*P.x*P.x+2*E.a2*P.x+E.a4 - E.a1*P.y)/(2*P.y+E.a1*P.x+E.a3) in
-let t₃ := l^2+E.a1*l-E.a2-2*P.x in
-  satisfies_equation E t₃ (-E.a1 * t₃ - E.a3 - l * t₃ + l * P.x - P.y)
-:= double_formula (satisfies_equation_of_nonzero h) h'
-
 lemma eq_or_neg_of_eq_x {x y z : K} (hx : satisfies_equation E x y)
-(hy : satisfies_equation E x z) : z = y  ∨ z = -E.a1 * x - E.a3 - y :=
+(hy : satisfies_equation E x z) : z = y  ∨ z = - E.a3 - E.a1 * x - y :=
 begin
   by_cases h' : y + z + E.a1 * x + E.a3 = 0,
   { right,
@@ -299,7 +337,6 @@ def is_two_torsion (P : points E) := P = 0 ∨ P.y + P.y + E.a1 * P.x + E.a3 = 0
 @[simp] lemma is_order_two {P : points E} (h : P ≠ 0) (h' : is_two_torsion P)
 : P.y + P.y + E.a1 * P.x + E.a3 = 0 :=
 begin
-  unfold is_two_torsion at h',
   cases h', contradiction,
   exact h',
 end
@@ -307,10 +344,29 @@ end
 @[simp] lemma is_order_two' {x y : K} {h : satisfies_equation E x y}
 (h' : is_two_torsion (some x y h)) : y + y + E.a1 * x + E.a3 = 0 :=
 begin
-  unfold is_two_torsion at h',
   cases h', contradiction,
   exact h',
 end
+
+
+def Ld (E : EllipticCurve K) (t₁ s₁: K) : K := (3*t₁*t₁+2*E.a2*t₁+E.a4-E.a1*s₁)/(2*s₁+E.a1*t₁+E.a3)
+def La (E : EllipticCurve K) (t₁ t₂ s₁ s₂ : K) : K := (s₁-s₂)/(t₁-t₂)
+
+def slope (E : EllipticCurve K) (t₁ t₂ s₁ s₂ : K) : K :=
+ite (t₁ = t₂) ((3*t₁*t₁+2*E.a2*t₁+E.a4-E.a1*s₁)/(2*s₁+E.a1*t₁+E.a3)) ((s₁-s₂)/(t₁-t₂))
+
+@[simp]
+lemma slope_def (E : EllipticCurve K) (t₁ t₂ s₁ s₂ : K) :
+E.slope t₁ t₂ s₁ s₂ =
+ite (t₁ = t₂) ((3*t₁*t₁+2*E.a2*t₁+E.a4-E.a1*s₁)/(2*s₁+E.a1*t₁+E.a3)) ((s₁-s₂)/(t₁-t₂)) := rfl
+
+@[simp]
+lemma slope_double_def (E : EllipticCurve K) {t₁ s₁: K} :
+Ld E t₁ s₁ = (3*t₁*t₁+2*E.a2*t₁+E.a4-E.a1*s₁)/(2*s₁+E.a1*t₁+E.a3):= rfl
+
+@[simp]
+lemma slope_add_def (E : EllipticCurve K) {t₁ t₂ s₁ s₂ : K} :
+La E t₁ t₂ s₁ s₂ = (s₁-s₂)/(t₁-t₂) := rfl
 
 @[simp]
 def add : points E → points E → points E
@@ -322,14 +378,14 @@ if h : (t₁ = t₂) then
   --  `P₁=±P₂`. Let's deal with `P₁=-P₂` first
   if h' : s₁ + s₂ + E.a1 * t₁ + E.a3 = 0 then zero
   -- `P₁=P₂`
-  else let l := (3*t₁*t₁+2*E.a2*t₁+E.a4 - E.a1*s₁)/(2*s₁+E.a1*t₁+E.a3) in
-       let t₃ := l^2+E.a1*l-E.a2-2*t₁ in
-  some t₃ (-E.a1 * t₃ - E.a3 - l * t₃ + l * t₁ - s₁)
+  else
+    let l := (3*t₁*t₁+2*E.a2*t₁+E.a4-E.a1*s₁)/(2*s₁+E.a1*t₁+E.a3) in
+    let t₃ := l*l+E.a1*l-E.a2-t₁-t₁ in some t₃ (-E.a3 - E.a1 * t₃ - (s₁ + l * t₃ - l * t₁))
   begin subst h, exact double_formula h₁ (by simpa [eq_y_of_eq_x h₁ h₂ h'] using h') end
-else let l :=(s₁-s₂)/(t₁-t₂) in let m :=  s₁ - l * t₁ in let t₃ :=l*l+E.a1*l-E.a2-t₁-t₂ in
-some t₃ (-E.a3 - E.a1 * t₃ - (l*t₃+m)) (neg_formula (add_neg_formula h h₁ h₂)) -- level 2; add
+else let l := (s₁-s₂)/(t₁-t₂) in let t₃ :=l*l+E.a1*l-E.a2-t₁-t₂ in
+some t₃ (-E.a3 - E.a1 * t₃ - (s₁ + l * t₃ - l * t₁)) (add_formula h h₁ h₂)
 
-@[simp] def sub : points E → points E → points E := λ P Q, add P (neg Q)
+def sub : points E → points E → points E := λ P Q, add P (neg Q)
 
 instance : has_add (points E) := ⟨EllipticCurve.add⟩
 instance : has_sub (points E) := ⟨EllipticCurve.sub⟩
@@ -341,11 +397,77 @@ instance : has_sub (points E) := ⟨EllipticCurve.sub⟩
 @[simp] lemma add_zero (P : points E) : P + 0 = P := by {cases P; refl }
 @[simp] lemma zero_add (P : points E) : 0 + P = P := by {cases P; refl }
 
+
+
+lemma add_sl_x {t₁ t₂ s₁ s₂ : K} (h₁ : satisfies_equation E t₁ s₁)(h₂ : satisfies_equation E t₂ s₂)
+(h : t₁ ≠ t₂ ∨ s₁ + s₂ + E.a1 * t₁ + E.a3 ≠ 0) : (some t₁ s₁ h₁ + some t₂ s₂ h₂).x =
+(E.slope t₁ t₂ s₁ s₂)*(E.slope t₁ t₂ s₁ s₂)+E.a1*(E.slope t₁ t₂ s₁ s₂)-E.a2-t₁-t₂ :=
+begin
+  by_cases h' : t₁ = t₂,
+  { simp [h'] at h, simp [h, h'], },
+  { simp [h'] at h, simp [h'], }
+end
+
+lemma add_sl_y {t₁ t₂ s₁ s₂ : K} (h₁ : satisfies_equation E t₁ s₁)(h₂ : satisfies_equation E t₂ s₂)
+(h : t₁ ≠ t₂ ∨ s₁ + s₂ + E.a1 * t₁ + E.a3 ≠ 0) : (some t₁ s₁ h₁ + some t₂ s₂ h₂).y =
+let l := E.slope t₁ t₂ s₁ s₂ in
+let t₃ := l*l+E.a1*l-E.a2-t₁-t₂ in -E.a3 - E.a1 * t₃ - (s₁ + l * t₃ - l * t₁) :=
+begin
+  by_cases h' : t₁ = t₂,
+  { simp [h'] at h, simp [h, h'] },
+  { simp [h'] at h, simp [h'] }
+end
+
+
+lemma double_some_x {x y : K} (h : satisfies_equation E x y) (h' : y+y + E.a1 * x + E.a3 ≠ 0)
+: (some x y h + some x y h).x =
+(x^3*E.a1^2 - x*y*E.a1^3 + x^2*E.a1^2*E.a2 + 9*x^4 - 8*x^2*y*E.a1 - y^2*E.a1^2 + 12*x^3*E.a2 -
+4*x*y*E.a1*E.a2 + 4*x^2*E.a2^2 - x^2*E.a1*E.a3 - y*E.a1^2*E.a3 + x*E.a1^2*E.a4 - 8*x*y^2 -
+4*y^2*E.a2 - 8*x*y*E.a3 - 4*y*E.a2*E.a3 - 2*x*E.a3^2 - E.a2*E.a3^2 + 6*x^2*E.a4 + 4*x*E.a2*E.a4 +
+E.a1*E.a3*E.a4 + E.a4^2) / (y+y + E.a1 * x + E.a3)^2 :=
+begin
+  simp [h, h'],
+  have h'' : 2*y + E.a1 * x + E.a3 ≠ 0, by {
+    intro hc,
+    apply h',
+    rw ←hc, ring,
+  },
+  field_simp [h', h''],
+  ring,
+end
+
+lemma double_some_y {x y : K} (h : satisfies_equation E x y) (h' : y+y + E.a1 * x + E.a3 ≠ 0)
+: (some x y h + some x y h).y = -(x^4*E.a1^4 - x^2*y*E.a1^5 + x^3*E.a1^4*E.a2 + 9*x^5*E.a1^2 -
+8*x^3*y*E.a1^3 - 2*x*y^2*E.a1^4 + 15*x^4*E.a1^2*E.a2 - 5*x^2*y*E.a1^3*E.a2 + 6*x^3*E.a1^2*E.a2^2 +
+x^3*E.a1^3*E.a3 - 2*x*y*E.a1^4*E.a3 + x^2*E.a1^3*E.a2*E.a3 + x^2*E.a1^4*E.a4 + 27*x^6 -
+27*x^4*y*E.a1 - 9*x^2*y^2*E.a1^2 - y^3*E.a1^3 + 54*x^5*E.a2 - 24*x^3*y*E.a1*E.a2 -
+10*x*y^2*E.a1^2*E.a2 + 36*x^4*E.a2^2 - 4*x^2*y*E.a1*E.a2^2 + 8*x^3*E.a2^3 - 9*x^2*y*E.a1^2*E.a3 -
+2*y^2*E.a1^3*E.a3 + 6*x^3*E.a1*E.a2*E.a3 - 10*x*y*E.a1^2*E.a2*E.a3 + 4*x^2*E.a1*E.a2^2*E.a3 -
+y*E.a1^3*E.a3^2 - x*E.a1^2*E.a2*E.a3^2 + 9*x^3*E.a1^2*E.a4 + 7*x^2*E.a1^2*E.a2*E.a4 +
+2*x*E.a1^3*E.a3*E.a4 - 36*x^3*y^2 + 8*x*y^3*E.a1 - 36*x^2*y^2*E.a2 - 4*y^3*E.a1*E.a2 -
+8*x*y^2*E.a2^2 - 36*x^3*y*E.a3 + 12*x*y^2*E.a1*E.a3 - 36*x^2*y*E.a2*E.a3 - 8*y^2*E.a1*E.a2*E.a3 -
+8*x*y*E.a2^2*E.a3 - 9*x^3*E.a3^2 + 6*x*y*E.a1*E.a3^2 - 9*x^2*E.a2*E.a3^2 - 5*y*E.a1*E.a2*E.a3^2 -
+2*x*E.a2^2*E.a3^2 + x*E.a1*E.a3^3 - E.a1*E.a2*E.a3^3 + 27*x^4*E.a4 - 6*x^2*y*E.a1*E.a4 -
+  y^2*E.a1^2*E.a4 + 36*x^3*E.a2*E.a4 + 12*x^2*E.a2^2*E.a4 + 6*x^2*E.a1*E.a3*E.a4 +
+6*x*E.a1*E.a2*E.a3*E.a4 + E.a1^2*E.a3^2*E.a4 + 2*x*E.a1^2*E.a4^2 + 8*y^4 +
+20*y^3*E.a3 + 18*y^2*E.a3^2 + 7*y*E.a3^3 + E.a3^4 - 12*x*y^2*E.a4 - 4*y^2*E.a2*E.a4 -
+12*x*y*E.a3*E.a4 - 4*y*E.a2*E.a3*E.a4 - 3*x*E.a3^2*E.a4 - E.a2*E.a3^2*E.a4 + 9*x^2*E.a4^2 +
+    y*E.a1*E.a4^2 + 6*x*E.a2*E.a4^2 + 2*E.a1*E.a3*E.a4^2 + E.a4^3) / (y+y + E.a1 * x + E.a3)^3:=
+begin
+  simp [h, h'],
+  have h'' : 2*y + E.a1 * x + E.a3 ≠ 0,
+  { intro hc,
+    apply h',
+    rw ←hc, ring },
+  field_simp [h', h''],
+  ring,
+end
+
+
 @[simp] lemma neg_zero :  neg (0 : points E) = 0 := rfl
 
 @[simp]
 lemma sub_eq_add_neg (P Q : points E) : P - Q = P + (-Q) := rfl
-
 
 lemma add_self_order_two (P : points E) (h : is_two_torsion P) : P + P = 0 :=
 begin
@@ -354,12 +476,9 @@ begin
 end
 
 @[simp]
-lemma is_two_torsion_def (P : points E) : is_two_torsion P ↔ P + P = 0 :=
+lemma is_two_torsion_def (P : points E) :  P + P = 0 ↔ is_two_torsion P:=
 begin
   split,
-  {
-    exact add_self_order_two P,
-  },
   {
     intro h,
     cases P,
@@ -369,6 +488,9 @@ begin
       by_contradiction hc,
       simp [hc] at h,
       contradiction }
+  },
+  {
+    exact add_self_order_two P,
   }
 end
 
@@ -376,14 +498,14 @@ end
 lemma add_left_neg (P : points E) : add (neg P) P = 0 :=
 begin
   cases P, refl,
-  simp [show P_y + (-E.a3 - E.a1 * P_x - P_y) + E.a1 * P_x + E.a3 = 0, by ring],
+  simp,
 end
 
 @[simp]
 lemma add_right_neg (P : points E) : add P (neg P) = 0 :=
 begin
   cases P, refl,
-  simp [show P_y + (-E.a3 - E.a1 * P_x - P_y) + E.a1 * P_x + E.a3 = 0, by ring],
+  simp,
 end
 
 @[simp]
@@ -517,23 +639,13 @@ end
 lemma add_self {x y : K}
 (h : y ^ 2 + E.a1 * x * y + E.a3 * y = x ^ 3 + E.a2 * x ^ 2 + E.a4 * x + E.a6)
 (h': y + y + E.a1 * x + E.a3 ≠ 0 ) : let l := (3*x*x+2*E.a2*x+E.a4 - E.a1*y)/(2*y+E.a1*x+E.a3) in
-let t₃ := l^2+E.a1*l-E.a2-2*x in some x y h + some x y h = some t₃ (-E.a1 * t₃ - E.a3 - l * t₃ + l * x - y)
+let t₃ := l*l+E.a1*l-E.a2-x-x in some x y h + some x y h = some t₃ (-E.a3 - E.a1 *t₃ - (y + l * t₃ - l * x))
 (double_formula h h') := by simp [h, h']
 
 @[simp]
 lemma add_self_zero {x y : K}
 (h : y ^ 2 + E.a1 * x * y + E.a3 * y = x ^ 3 + E.a2 * x ^ 2 + E.a4 * x + E.a6)
 (h': y + y + E.a1 * x + E.a3 = 0 ) : some x y h + some x y h = 0 := by simp [h']
-
-@[simp]
-lemma add_self' {P : points E} (h : P ≠ 0) (h' : P.y + P.y + E.a1 * P.x + E.a3 ≠ 0) :
-let l := (3*P.x*P.x+2*E.a2*P.x+E.a4 - E.a1*P.y)/(2*P.y+E.a1*P.x+E.a3) in
-let t₃ := l^2+E.a1*l-E.a2-2*P.x in
-P + P = some t₃ (-E.a1 * t₃ - E.a3 - l * t₃ + l * P.x - P.y) (double_formula' h h') :=
-begin
-  cases P with Px Py hP H, tauto,
-  simpa using add_self hP h',
-end
 
 @[simp]
 lemma add_self_zero' {P : points E} (h : P ≠ 0)
@@ -552,14 +664,16 @@ lemma add_def_x  {t₁ t₂ s₁ s₂ : K} (h : t₁ ≠ t₂)
 
 lemma add_def_y  {t₁ t₂ s₁ s₂ : K} (h : t₁ ≠ t₂)
 (h₁ : satisfies_equation E t₁ s₁) (h₂ : satisfies_equation E t₂ s₂)
-: let l :=(s₁-s₂)/(t₁-t₂) in let m :=  s₁ - l * t₁ in
+: let l :=(s₁-s₂)/(t₁-t₂) in
 let t₃ := l*l+E.a1*l-E.a2-t₁-t₂ in
-(some t₁ s₁ h₁ + some t₂ s₂ h₂).y = (-E.a3 - E.a1 * t₃ - (l*t₃+m)) := by simp [h]
+(some t₁ s₁ h₁ + some t₂ s₂ h₂).y = (-E.a3 - E.a1 * t₃ - (s₁ + l*t₃ - l * t₁)) := by simp [h]
 
-lemma add_def {t₁ t₂ s₁ s₂ : K} (h₁ h₂) (h : t₁ ≠ t₂) :
-let l :=(s₁-s₂)/(t₁-t₂) in let m :=  s₁ - l * t₁ in let t₃ :=l*l+E.a1*l-E.a2-t₁-t₂ in
+
+lemma add_def {t₁ t₂ s₁ s₂ : K} (h₁ : satisfies_equation E t₁ s₁) (h₂ : satisfies_equation E t₂ s₂)
+(h : t₁ ≠ t₂) :
+let l :=(s₁-s₂)/(t₁-t₂) in let t₃ :=l*l+E.a1*l-E.a2-t₁-t₂ in
 some t₁ s₁ h₁ + some t₂ s₂ h₂ =
-some t₃ (-E.a3-E.a1*t₃-(l*t₃ + m)) (neg_formula (add_neg_formula h h₁ h₂)) :=
+some t₃ (-E.a3-E.a1*t₃-(s₁ + l*t₃ - l * t₁)) (add_formula h h₁ h₂) :=
 begin
   have h₁nz : some t₁ s₁ h₁ ≠ 0, by contradiction,
   have h₂nz : some t₂ s₂ h₂ ≠ 0, by contradiction,
@@ -588,30 +702,22 @@ lemma two_mul_eq_zero_iff (P : points E) (h : P ≠ 0) :
 P + P = 0 ↔ P.y + P.y + E.a1 * P.x + E.a3 = 0 :=
 begin
   split,
-  {
-    intro hP,
+  { intro hP,
     rw points.has_add at hP,
     cases P, tauto,
     by_cases h' : P_y + P_y + E.a1 * P_x + E.a3 = 0,
-    {
-      exact h',
-    },
-    {
-      simp [h'] at hP,
-      contradiction,
-    }
+    { exact h' },
+    { simp [h'] at hP, contradiction },
   },
-  {
-    intro hP,
+  { intro hP,
     cases P, tauto,
     simp at hP,
-    simp [hP],
-  }
+    simp [hP] }
 end
 
 @[simp]
 lemma eq_or_neg_of_eq_x' {P Q : points E} (h : P.x = Q.x) (hP : P ≠ 0) (hQ : Q ≠ 0) :
-Q.y = P.y ∨ Q.y = -E.a1 * P.x - E.a3 - P.y :=
+Q.y = P.y ∨ Q.y = -E.a3 - E.a1 * P.x- P.y :=
 begin
   apply eq_or_neg_of_eq_x,
   exact satisfies_equation_of_nonzero hP,
@@ -638,7 +744,6 @@ begin
     cases P, contradiction,
     simp at h h_1,
     simp [h, h_1],
-    ring,
   }
 end
 
@@ -716,11 +821,11 @@ begin
           rw ←sub_eq_zero,
           have hkey : (E.a1 * (δ - E.a1*P_x - E.a3 - 2*Q_y) *
           ((E.a2 + 3*P_x)*δ^2 + (E.a1^3*P_x + E.a1^2*E.a3 + 2*E.a1*E.a2*P_x +
-           3*E.a1*P_x^2 + E.a1^2*Q_y + E.a1*E.a4)*δ - E.a1^4*P_x^2 - 2*E.a1^3*E.a3*P_x -
-           6*E.a1^2*E.a2*P_x^2 - 9*E.a1^2*P_x^3 - E.a1^3*P_x*Q_y - E.a1^2*E.a3^2 -
-           6*E.a1*E.a2*E.a3*P_x - 3*E.a1^2*E.a4*P_x - 12*E.a2^2*P_x^2 - 9*E.a1*E.a3*P_x^2 -
-           36*E.a2*P_x^3 - 27*P_x^4 - E.a1^2*E.a3*Q_y - E.a1^2*Q_y^2 - 3*E.a1*E.a3*E.a4 -
-           12*E.a2*E.a4*P_x - 18*E.a4*P_x^2 - 3*E.a4^2)) / δ^3 = 0,
+          3*E.a1*P_x^2 + E.a1^2*Q_y + E.a1*E.a4)*δ - E.a1^4*P_x^2 - 2*E.a1^3*E.a3*P_x -
+          6*E.a1^2*E.a2*P_x^2 - 9*E.a1^2*P_x^3 - E.a1^3*P_x*Q_y - E.a1^2*E.a3^2 -
+          6*E.a1*E.a2*E.a3*P_x - 3*E.a1^2*E.a4*P_x - 12*E.a2^2*P_x^2 - 9*E.a1*E.a3*P_x^2 -
+          36*E.a2*P_x^3 - 27*P_x^4 - E.a1^2*E.a3*Q_y - E.a1^2*Q_y^2 - 3*E.a1*E.a3*E.a4 -
+          12*E.a2*E.a4*P_x - 18*E.a4*P_x^2 - 3*E.a4^2)) / δ^3 = 0,
           { rw hδ, ring },
           rw ←hkey,
           norm_num,
@@ -744,88 +849,176 @@ begin
   }
 end
 
-lemma eq_neg_of_add_eq_sub (h1 : P ≠ -P) (h2 : P + Q = P - Q) : Q = -Q :=
+lemma y_of_add_eq_left (P Q : points E) (hP : P ≠ 0) (hQ : Q ≠ 0) (h : P + Q = P) :
+P.y + P.y + E.a1 * P.x + E.a3 = 0 :=
+begin
+  by_contradiction hc,
+  by_cases hPQ : P = Q,
+  {
+    subst hPQ,
+    cases P, tauto,
+    simp at hc,
+    simp [hc] at h,
+    cases h,
+    rw h_left at h_right,
+    apply hc,
+    rw ←sub_eq_zero at h_right,
+    rw ←neg_eq_zero,
+    rw ←h_right,
+    ring,
+  },
+  cases P, tauto,
+  cases Q, tauto,
+  simp at hc,
+  by_cases hx : P_x = Q_x,
+  {
+    subst hx,
+    have hy : P_y + Q_y + E.a1 * P_x + E.a3 ≠ 0,
+    {
+      by_contradiction hyc,
+      simp [hc, hyc] at h,
+      contradiction,
+    },
+    simp [hc, hy] at h,
+    cases h,
+    rw h_left at h_right,
+    apply hc,
+    rw ←sub_eq_zero at h_right,
+    rw ←neg_eq_zero,
+    rw ←h_right,
+    ring,
+  },
+  {
+    simp [hc, hx] at h,
+    cases h,
+    rw h_left at h_right,
+    apply hc,
+    rw ←sub_eq_zero at h_right,
+    rw ←neg_eq_zero,
+    rw ←h_right,
+    ring,
+  }
+end
+
+lemma eq_neg_of_add_eq_sub (P : points E) (h2 : P + Q = P - Q) : Q = -Q :=
 begin
   by_cases h : P = Q,
-  {
-    subst h,
+  { subst h,
     rw ←add_eq_zero_iff,
-    simpa using h2,
-  },
+    simpa using h2 },
   by_cases h' : P = -Q,
-  {
-    subst h',
+  { subst h',
     rw sub_eq_add_neg at h2,
     have H : -Q + Q = 0 := (add_eq_zero_iff (-Q) Q).mpr rfl,
     have H' : -Q + -Q = 0 := (rfl.congr H).mp (eq.symm h2),
-    apply neg_unique (-Q) _ _ H H',
-  },
+    apply neg_unique (-Q) _ _ H H' },
+  cases P, by simpa using h2,
+  cases Q, tauto,
+  rw ←add_self_eq_zero_iff,
+  have hPQx : P_x ≠ Q_x,
+  { by_contradiction hc,
+    subst hc,
+    simp at h h',
+    cases eq_or_neg_of_eq_x Q_h P_h,
+    {contradiction},
+    { subst h_1,
+      apply h',
+      ring } },
+  have hPQx' : P_x - Q_x ≠ 0, by {intro hc, apply hPQx, rw ←sub_eq_zero, exact hc},
+  have hPQx'' : Q_x - P_x ≠ 0, by {intro hc, apply hPQx, symmetry, rw ←sub_eq_zero, exact hc },
+  simp [hPQx] at h2,
+  cases h2 with h2x h2y,
+  field_simp [hPQx'] at h2x,
+  replace h2x : -(P_x - Q_x) * (E.a1*Q_x + E.a3 + 2*Q_y) * (P_y + P_y + E.a1*P_x + E.a3) = 0,
+  { rw ←sub_eq_zero at h2x,
+    rw ←h2x,
+    ring },
+  suffices : (Q_y + Q_y + E.a1 * Q_x + E.a3) = 0, by simp [this],
+  simp only [mul_eq_zero] at h2x,
+  cases h2x,
+  cases h2x,
+  { rw neg_eq_zero at h2x,
+    contradiction },
+  { rw ←h2x,ring },
   {
-    cases P, tauto,
-    cases Q, tauto,
-    rw ←add_self_eq_zero_iff,
-    have hPQx : P_x ≠ Q_x,
+    by_cases h1 : some P_x P_y P_h = -some P_x P_y P_h,
     {
-      by_contradiction hc,
-      subst hc,
-      simp at h h' h1,
-      have hc' := eq_or_neg_of_eq_x Q_h P_h,
-      cases hc',
-      {contradiction},
-      { subst hc',
-        apply h',
-        ring }
-    },
-    have hPQx' : P_x - Q_x ≠ 0, by {intro hc, apply hPQx, rw ←sub_eq_zero, exact hc},
-    simp [hPQx] at h2,
-    cases h2 with h2x h2y,
-    field_simp [hPQx'] at h2x,
-    clear h2y,
-    have hPy : 2*P_y + E.a1*P_x + E.a3 ≠ 0,
-    {
-      intro hc,
-      simp [hc] at h1,
-      apply h1,
-      rw [←sub_eq_zero, ←hc],
+      simp at h1,
+      have eq1 : -P_x^3 + P_x*P_y*E.a1 - P_x^2*E.a2 + P_y^2 + P_y*E.a3 - P_x*E.a4 - E.a6 = 0,
+      {
+        unfold satisfies_equation at P_h,
+        rw ←sub_eq_zero at P_h,
+        rw ←P_h,
+        ring,
+      },
+      have eq2 : -Q_x^3 + Q_x*Q_y*E.a1 - Q_x^2*E.a2 + Q_y^2 + Q_y*E.a3 - Q_x*E.a4 - E.a6 = 0,
+      {
+        unfold satisfies_equation at Q_h,
+        rw ←sub_eq_zero at Q_h,
+        rw ←Q_h,
+        ring,
+      },
+      have hc := no_repeated_roots P_h h2x,
+      by_contradiction hQy,
+      apply hc,
+      replace h2y :
+      (Q_y + Q_y + E.a1 * Q_x + E.a3) * (-(P_x- Q_x) * (3*P_x^2 - P_y*E.a1 + 2*P_x*E.a2 + E.a4) +
+      (-Q_x^3 + Q_x*Q_y*E.a1 - Q_x^2*E.a2 + Q_y^2 + Q_y*E.a3 - Q_x*E.a4 - E.a6) -
+      (-P_x^3 + P_x*P_y*E.a1 - P_x^2*E.a2 + P_y^2 + P_y*E.a3 - P_x*E.a4 - E.a6)
+      + (P_y + P_y + E.a1 * P_x + E.a3)^2) / (P_x - Q_x)^3 = 0,
+      {
+        rw ←sub_eq_zero at h2y,
+        rw ←h2y,
+        field_simp [hPQx'],
+        ring,
+      },
+      rw [eq1, eq2, h2x, show (0 : K)^2 = 0, by ring] at h2y,
+      simp [hPQx', hPQx'', hQy] at h2y,
+      rw ←h2y,
       ring,
     },
-    replace h2x : -(P_x - Q_x) * (E.a1*Q_x + E.a3 + 2*Q_y) * (2*P_y + E.a1*P_x + E.a3) = 0,
-    {
-      rw ←sub_eq_zero at h2x,
-      rw ←h2x,
-      ring,
+    { have hPy : P_y + P_y + E.a1*P_x + E.a3 ≠ 0,
+      {
+        intro hc,
+        simp [hc] at h1,
+        apply h1,
+        rw [←sub_eq_zero, ←hc],
+        ring },
+      contradiction,
     },
-    have hkey : (Q_y + Q_y + E.a1 * Q_x + E.a3) = 0,
-    {
-      simp only [mul_eq_zero] at h2x,
-      cases h2x,
-      cases h2x,
-      { rw neg_eq_zero at h2x,
-        contradiction },
-      { rw ←h2x,ring },
-      { contradiction }
-    },
-    simp [hkey],
   }
 end
+
 
 -- This one needs computation, uses that curve is nonsingular!
 lemma zero_unique' (h : P + Q = P) : Q = 0 :=
 begin
   by_cases hP : P = 0, { subst hP, rw ←h, simp },
+  by_contradiction hQ,
+  have hkey : P.y + P.y + E.a1 * P.x + E.a3 = 0 := y_of_add_eq_left P Q hP hQ h,
   by_cases hPQ1 : P = -Q,
   { subst hPQ1,
     simp at h,
     specialize hP (eq.symm h),
     contradiction },
+  have h2' : P = -P,
+  {
+    rw ←add_self_eq_zero_iff,
+    exact add_self_zero' hP hkey,
+  },
+  have h2 : P + Q = P - Q,
+  {
+    calc P + Q = P : h
+    ...  = - P : h2'
+    ...  = - (P + Q) : by {rw h}
+    ...  = - P - Q : neg_add'
+    ...  = P - Q : by {rw ←h2'}
+  },
   by_cases hPQ : P = Q,
   {
     subst hPQ,
-    have : P + P ≠ 0,
-    {
-      sorry
-    },
     cases P, tauto,
+    simp at hkey,
     simp only [true_and, points_neg_def, eq_self_iff_true, neg_some] at hPQ1,
     replace hPQ1 :  P_y + P_y + E.a1 * P_x + E.a3 ≠ 0,
     {
@@ -834,13 +1027,86 @@ begin
       rw [←sub_eq_zero, ←hc],
       ring,
     },
-    simp [hPQ1] at *,
-    sorry
+    tauto,
   },
-  sorry
+  cases P, tauto,
+  cases Q, tauto,
+  simp at hPQ hPQ1 hkey,
+  have hx : P_x ≠ Q_x,
+  {
+    by_contradiction hxc,
+    subst hxc,
+    clear hQ,
+    simp at hPQ hPQ1 hkey,
+    have H : P_y^2 + E.a1 * P_x*P_y + E.a3 * P_y = Q_y^2 + E.a1 * P_x * Q_y + E.a3 * Q_y,
+    { unfold satisfies_equation at P_h Q_h, rw [P_h, Q_h] },
+    have H' : -P_y^2 - Q_y^2 + 2 * P_y * Q_y = 0,
+    {
+      have ha : P_y * (P_y + P_y + E.a1 * P_x + E.a3) = 0 := mul_eq_zero_of_right P_y hkey,
+      have hb : Q_y * (P_y + P_y + E.a1 * P_x + E.a3) = 0 := mul_eq_zero_of_right Q_y hkey,
+      rw ←sub_eq_zero at H,
+      rw [show ((0 : K) = 0 - 0 + 0), by ring],
+      nth_rewrite_rhs 0 ←H,
+      nth_rewrite_rhs 0 ←ha,
+      nth_rewrite_rhs 0 ←hb,
+      ring,
+    },
+    have H'' : P_y = Q_y,
+    {
+      symmetry,
+      rw ←sub_eq_zero,
+      haveI : no_zero_divisors K := is_domain.to_no_zero_divisors K,
+      apply @pow_eq_zero _ _ _inst _ 2,
+      rw [←neg_eq_zero, ←H'],
+      ring },
+    contradiction,
+  },
+  simp [*] at h,
+  cases h,
+  clear hPQ hPQ1 hP hQ,
+  have hx' : P_x - Q_x ≠ 0 := sub_ne_zero.mpr hx,
+  field_simp [hx'] at h_left,
+  replace h_left :
+  (P_x - Q_x) * ((P_y - (-E.a3 - E.a1 * Q_x - Q_y)) * (P_y - (-E.a3 - E.a1 * Q_x - Q_y)) +
+   E.a1 * (P_y - (-E.a3 - E.a1 * Q_x - Q_y)) * (P_x - Q_x) - (P_x - Q_x) * (P_x - Q_x) * E.a2 -
+  (P_x - Q_x) * (P_x - Q_x) * (P_x + Q_x))
+  =
+  (P_x - Q_x) * (P_x * ((P_x - Q_x) * (P_x - Q_x))),
+  {
+    rw ←sub_eq_zero at h_left ⊢,
+    rw ←h_left,
+    rw ←sub_eq_zero,
+    ring,
+  },
+  rw mul_right_inj' hx' at h_left,
+  have hQy := eq_neg_of_add_eq_sub _ h2,
+  simp [*] at hQy,
+  clear h_right,
+  rw ←hQy at h_left,
+  replace hQy : Q_y + Q_y +E.a1 * Q_x + E.a3 = 0,
+  {
+    rw ←sub_eq_zero at hQy,
+    rw ←hQy,
+    ring,
+  },
+  replace h_left :
+  0-0 + (P_y-Q_y)*0 - (P_x - Q_x) * (3*P_x*P_x + 2*E.a2*P_x + E.a4 - E.a1 * P_y) = 0,
+  {
+    unfold satisfies_equation at P_h Q_h,
+    rw ←sub_eq_zero at P_h Q_h,
+    nth_rewrite_lhs 0 ←Q_h,
+    nth_rewrite_lhs 0 ←P_h,
+    nth_rewrite_lhs 0 ←hkey,
+    rw ←sub_eq_zero at h_left,
+    rw ← h_left,
+    ring,
+  },
+  norm_num at h_left,
+  simp [*] at h_left,
+  have hc := no_repeated_roots P_h hkey,
+  contradiction,
 end
 
-@[simp]
 lemma zero_unique : P + Q = P ↔ Q = 0 :=
 begin
   split,
@@ -848,18 +1114,34 @@ begin
   { intro h, simp [h] }
 end
 
-
-lemma add_sub_self_cancel (h1 : P ≠ -P) (h2 : P + P ≠ -P) : P + P - P = P :=
+lemma add_sub_self_cancel : P + P - P = P :=
 begin
-  cases P, tauto,
-  by_cases h : P_y + P_y + E.a1 * P_x + E.a3 = 0,
+  by_cases h1 : P = -P,
+  { rw [show P + P = 0, by {nth_rewrite_lhs 0 h1, simp}], simpa using h1 },
+  by_cases h2 : P + P = -P,
   {
-    simp only [h, true_and, points_neg_def, add_self_zero,
-    eq_self_iff_true, zero_add, sub_eq_add_neg, neg_some],
-    rw [←sub_eq_zero, ←neg_eq_zero, ←h],
-    ring },
-
-  have hkey : -(E.a1 * P_x) - E.a3 - P_y + (-E.a3 - E.a1 * P_x - P_y) + E.a1 * P_x + E.a3 ≠ 0,
+    rw h2,
+    nth_rewrite_rhs 0 ←neg_neg P,
+    change -P - P = - - P,
+    nth_rewrite_rhs 0 ←h2,
+    exact neg_add'.symm,
+  },
+  cases P, tauto,
+  have h3 : some P_x P_y P_h + some P_x P_y P_h ≠ some P_x P_y P_h,
+  {
+    intro hc,
+    rw zero_unique at hc,
+    apply some_ne_zero hc,
+  },
+  have h : P_y + P_y + E.a1 * P_x + E.a3 ≠ 0,
+  {
+    intro hc,
+    apply h1,
+    rw ←add_self_eq_zero_iff,
+    simp [hc],
+  },
+  have hkey : -(E.a1 * P_x) - E.a3 - P_y + (-E.a3 - E.a1 * P_x - P_y) +
+   E.a1 * P_x + E.a3 ≠ 0,
   {
     intro hc,
     apply h,
@@ -867,27 +1149,340 @@ begin
     rw ←hc,
     ring,
   },
-  -- Needs a calculation
-  sorry
+  rw sub_eq_add_neg,
+  rw neg_some,
+  have h'' : -E.a3 - E.a1 * P_x - P_y + (-E.a3 - E.a1 * P_x - P_y) + E.a1 * P_x + E.a3 ≠ 0,
+  {
+    intro hc,
+    apply h,
+    rw [show ((0 : K)= -0), by ring],
+    rw ←hc,
+    ring,
+  },
+  generalize hd : 2 * P_y + E.a1 * P_x + E.a3 = d,
+  generalize hn : 3 * P_x * P_x + 2 * E.a2 * P_x + E.a4 - E.a1 * P_y = n,
+  generalize hl : n / d = l,
+  generalize hz : l * l + E.a1 * l - E.a2 - P_x - P_x = z,
+  simp [h] at h2 h3,
+  rw [hn, hd, hl, hz] at h2 h3,
+  have h' : z ≠ P_x,
+  {
+    by_contradiction hc,
+    specialize h3 hc,
+    specialize h2 hc,
+    finish,
+  },
+  have h''' : 2*P_y + E.a1 * P_x + E.a3 ≠ 0,
+  { rw two_mul, exact h },
+  have hzP : z - P_x ≠ 0,
+  { intro hc,
+    apply h',
+    rw ←sub_eq_zero,
+    rw ←hc,
+    },
+  rw [←hz, ←hl, ←hd, ←hn] at h',
+  simp [h, h', h''],
+  rw [hn, hd, hl, hz],
+  rw better_split,
+  split,
+  {
+    field_simp [hzP],
+    rw ←sub_eq_zero,
+    suffices :
+    (z-P_x)^3 * (E.a1*l + l^2 - 2*P_x - E.a2 - z) = 0,
+    { rw ←this, ring },
+    simp [hzP],
+    rw ←sub_eq_zero at hz,
+    rw ←hz,
+    ring },
+  { intro H,
+    rw [H, ←sub_eq_zero],
+    field_simp [hzP],
+    ring }
 end
 
 lemma two_eight (h : P + Q = -P) : Q = -P - P :=
 begin
-  -- Needs a calculation
-  sorry
+  by_cases hP2 : P + P = 0,
+  {
+    rw [←neg_add', hP2],
+    simp only [points_neg_def, neg_zero],
+    rw [←@zero_unique _ _ _ _ P _, h],
+    symmetry,
+    rw ←add_self_eq_zero_iff,
+    exact hP2,
+  },
+  by_cases hQ : Q = 0,
+  {
+    subst hQ,
+    exfalso,
+    apply hP2,
+    simp at h,
+    nth_rewrite_lhs 0 h,
+    simp,
+  },
+  by_cases hPQ : P = Q,
+  {
+    subst hPQ,
+    rw ←neg_add',
+    rw h,
+    simp,
+  },
+  by_cases hPQ' : P = -Q,
+  {
+    rw hPQ',
+    rw hPQ' at h,
+    simp at h,
+    rw ←h,
+    simp,
+  },
+  suffices : Q = P + P ∨ Q = -(P+P),
+  {
+    cases this,
+    {
+      have hpneg : P + P = -(P+P),
+      {
+      apply eq_neg_of_add_eq_sub P,
+      calc
+      P + (P+P) = P + Q : by {rw this}
+      ... = -P : h
+      ... = -(P + P - P) : by {rw add_sub_self_cancel}
+      ... = -(P + P + (-P)) : rfl
+      ... = -((-P) + (P + P)) : by {rw add_comm}
+      ... = (- - P) - (P + P) : neg_add'
+      ... = P - (P + P) : by {simp}
+      },
+      rw ←neg_add',
+      rw ←hpneg,
+      exact this,
+    },
+    {
+      rw this,
+      exact neg_add',
+    }
+  },
+  apply eq_or_neg_of_eq_x'' _ hQ hP2,
+  cases Q, tauto,
+  cases P, tauto,
+  replace hP2 : P_y + P_y + E.a1 * P_x + E.a3 ≠ 0 := λ hc, by simpa [hc] using hP2,
+  have hx : P_x ≠ Q_x,
+  {
+    intro hc,
+    subst hc,
+    simp at hPQ,
+    simp at hPQ',
+    cases eq_or_neg_of_eq_x P_h Q_h,
+    { exact hPQ (h_1.symm) },
+    { apply hPQ',
+      rw h_1,
+      ring }
+  },
+  simp [hP2, hx] at h ⊢,
+  have hx': P_x - Q_x ≠ 0 := sub_ne_zero.mpr hx,
+  cases h,
+  symmetry,
+  rw ←sub_eq_zero,
+  simp [satisfies_equation] at P_h Q_h,
+  rw ←sub_eq_zero at P_h Q_h,
+  set poly1 := -2*P_x^3 + 3*P_x^2*Q_x - Q_x^3 + P_x*P_y*E.a1 - P_y*Q_x*E.a1 - P_x*Q_y*E.a1 +
+  Q_x*Q_y*E.a1 - P_x^2*E.a2 + 2*P_x*Q_x*E.a2 - Q_x^2*E.a2 + P_y^2 - 2*P_y*Q_y + Q_y^2
+  with hpoly1,
+  have h1 : poly1 = 0,
+  {
+    suffices : poly1 / (P_x-Q_x)^2 = 0, by simpa [hx'] using this,
+    rw ←sub_eq_zero at h_left,
+    rw ←h_left,
+    rw hpoly1,
+    field_simp [hx'],
+    ring,
+  },
+  have eq : (0 : K) + 0 - 0 = 0, by ring,
+  nth_rewrite_lhs 0 ←h1 at eq,
+  nth_rewrite_lhs 0 ←P_h at eq,
+  nth_rewrite_lhs 0 ←Q_h at eq,
+  set dP := P_y + P_y + E.a1 * P_x + E.a3 with hdP,
+  set dQ := Q_y + Q_y + E.a1 * Q_x + E.a3 with hdQ,
+  set eqlhs := poly1 + (P_y ^ 2 + E.a1 * P_x * P_y + E.a3 * P_y - (P_x ^ 3 + E.a2 * P_x ^ 2 + E.a4 * P_x + E.a6)) - (Q_y ^ 2 + E.a1 * Q_x * Q_y + E.a3 * Q_y - (Q_x ^ 3 + E.a2 * Q_x ^ 2 + E.a4 * Q_x + E.a6))
+  with heq,
+  have : poly1 * dP^2 + dP * (dQ - dP) * eqlhs + eqlhs^2 = 0, by {rw [h1, eq], ring},
+  rw [(show 2*P_y = P_y + P_y, by ring), ←hdP],
+  have haux: ∀ a, a*dP^2*(P_x-Q_x)^2 = 0 → a = 0,
+    by {exact λ _ h, by {simpa [hP2, hx'] using h}},
+  apply haux,
+  rw [hdP, ←this, hpoly1, hdP, hdQ, heq, hpoly1],
+  field_simp [hdP],
+  ring,
+end
+
+
+lemma add_left_cancel' {P Q R : points E} (h : P + Q = P + R) : Q = R := -- lemma 2.9
+begin
+  by_cases hPQ : P + Q = 0,
+  {
+    apply neg_unique _ _ _ hPQ,
+    rw h at hPQ,
+    exact hPQ,
+  },
+  by_cases hQRn : R = -Q,
+  {
+    rw hQRn at h,
+    rw hQRn,
+    exact eq_neg_of_add_eq_sub _ h,
+  },
+  by_cases hPQ' : P + Q = -P,
+  {
+    have h1 : Q = -P-P := two_eight hPQ',
+    rw h at hPQ',
+    have h2 : R = -P-P := two_eight hPQ',
+    rw [h1, h2],
+  },
+  by_cases hPQ'' : P + Q = P,
+  {
+    have h1: Q = 0 := zero_unique' hPQ'',
+    rw h at hPQ'',
+    have h2: R = 0 := zero_unique' hPQ'',
+    rw [h1, h2],
+  },
+  have hPR : ¬ P + R = 0,
+  {
+    intro hc,
+    rw hc at h,
+    exact hPQ h,
+  },
+  set T := P + Q with hT,
+  set T':= P + R with hT',
+  have T_h := satisfies_equation_of_nonzero hPQ,
+  have T_h' := satisfies_equation_of_nonzero hPR,
+
+  cases P,
+  {
+    simpa [hT, hT'] using h,
+  },
+  have PTx : P_x ≠ T.x,
+  {
+    intro hc,
+    rw ←hc at T_h,
+    cases eq_or_neg_of_eq_x P_h T_h,
+    {
+      apply hPQ'',
+      simp [hc, ←h_1, hPQ],
+      rw mk_coe,
+      assumption,
+    },
+    {
+      apply hPQ',
+      rw hc at h_1,
+      simp [hc, ←h_1, hPQ'],
+      rw mk_coe,
+      assumption,
+    }
+  },
+  cases Q,
+  {
+    symmetry,
+    apply zero_unique.mp h.symm,
+  },
+  cases R,
+  {
+    simp only [hT, hT', add_zero, tell_simplifier_to_use_numerals] at h,
+    apply zero_unique.mp h,
+  },
+  simp at hPQ,
+  replace hPQ : P_x ≠ Q_x ∨ (P_y + Q_y + E.a1 * P_x + E.a3 ≠ 0),
+  {
+    have htmp : P_x ≠ Q_x ∨ P_y ≠ -E.a3 - E.a1 * Q_x - Q_y, by tauto,
+    by_cases P_x = Q_x,
+    {
+      subst h,
+      simp at htmp,
+      right,
+      intro hc,
+      apply htmp,
+      rw ←sub_eq_zero,
+      rw ←hc,
+      ring,
+    },
+    {
+      left, assumption,
+    },
+  },
+  simp at hPR,
+  replace hPR : P_x ≠ R_x ∨ (P_y + R_y + E.a1 * P_x + E.a3 ≠ 0),
+  {
+    have htmp : P_x ≠ R_x ∨ P_y ≠ -E.a3 - E.a1 * R_x - R_y, by tauto,
+    by_cases P_x = R_x,
+    {
+      subst h,
+      simp at htmp,
+      right,
+      intro hc,
+      apply htmp,
+      rw ←sub_eq_zero,
+      rw ←hc,
+      ring,
+    },
+    {
+      left, assumption,
+    },
+  },
+  have Hx1 := add_sl_x P_h Q_h hPQ,
+  have Hx2 := add_sl_x P_h R_h hPR,
+  have hy1 := add_sl_y P_h Q_h hPQ,
+  have hy2 := add_sl_y P_h R_h hPR,
+  rw hT at h,
+  rw hT' at h,
+  rw h at hy1,
+  have hy := (rfl.congr hy2).mp (eq.symm hy1),
+  simp only [ite_mul, mul_ite] at hy,
+  rw ←Hx1 at hy,
+  rw ←Hx2 at hy,
+  rw h at hy,
+  set lPR := E.slope P_x R_x P_y R_y with hlPR,
+  set lPQ := E.slope P_x Q_x P_y Q_y with hlPQ,
+  set T_x := (some P_x P_y P_h + some R_x R_y R_h).x with hT_x,
+  rw [←hlPR, ←hlPQ, ←hT_x] at hy,
+  replace hy : (lPR - lPQ) * (T_x - P_x) = 0,
+  {
+    rw ←sub_eq_zero at hy,
+    rw ←hy,
+    ring,
+  },
+  have hTP : T_x - P_x ≠ 0,
+  {
+    intro hc,
+    rw sub_eq_zero at hc,
+    apply PTx,
+    rw ←hc,
+    exact (congr_arg points.x h).symm,
+  },
+  simp [hTP] at hy,
+  replace hy : lPR = lPQ := sub_eq_zero.mp hy,
+  rw [←hlPQ, h] at Hx1,
+  rw [←hlPR, hy] at Hx2,
+  have Hx := (rfl.congr Hx2).mp (eq.symm Hx1),
+  replace Hx : Q_x = R_x,
+  {
+    symmetry,
+    rw ←sub_eq_zero,
+    rw ←sub_eq_zero at Hx,
+    rw ←Hx,
+    ring,
+  },
+  rw Hx at Q_h,
+  cases eq_or_neg_of_eq_x Q_h R_h, by simp [Hx, h_1],
+  replace Hx := Hx.symm,
+  simp [Hx, h_1] at hQRn,
+  contradiction,
 end
 
 @[simp]
-lemma add_left_cancel (P Q R : points E) : P + Q = P + R ↔ Q = R := -- lemma 2.9
+lemma add_left_cancel (P Q R : points E) : P + Q = P + R ↔ Q = R :=
 begin
   split,
-  {intro h,
-  -- Needs a calculation
-  sorry
-  },
-  { intro h,
-    subst h }
+  { exact add_left_cancel' },
+  { intro h, subst h }
 end
+
 
 @[simp]
 lemma add_right_cancel (P Q R : points E) : P + R = Q + R ↔ P = Q := -- lemma 2.9 bis
@@ -903,27 +1498,118 @@ end
 lemma add_sub_cancel (P Q : points E) : P + Q - Q = P := -- lemma 2.10
 begin
   by_cases hPQ : P = -Q,
-  {
-    subst hPQ,
-    simp,
-  },
+  { subst hPQ, simp },
   by_cases hPQ' : P = Q,
+  { subst hPQ', apply add_sub_self_cancel },
+  by_cases hPQ'' : P + Q = - Q,
   {
-    subst hPQ',
-    by_cases h' : P + P = -P,
-    {
-      rw h',
-      replace h' := h'.symm,
-      rw neg_eq_iff at h',
-      nth_rewrite_rhs 0 h',
-      rw neg_add',
-    },
-    apply add_sub_self_cancel hPQ h',
-  },
+    rw add_comm at hPQ'',
+    have H := two_eight hPQ'',
+    rw [H, show -Q -Q = -Q + -Q, by rw sub_eq_add_neg, show -Q + -Q + Q = -Q + -Q - (-Q), by simp,
+      add_sub_self_cancel, sub_eq_add_neg] },
   cases P, { cases Q; simp },
-  cases Q,
-  { simp },
-  sorry
+  cases Q, { simp },
+  have hx : P_x ≠ Q_x,
+  {
+    intro hc,
+    subst hc,
+    cases eq_or_neg_of_eq_x P_h Q_h,
+    {
+      subst h,
+      contradiction,
+    },
+    {
+      simp [h] at hPQ hPQ',
+      apply hPQ,
+    }
+  },
+  have hx' : P_x - Q_x ≠ 0 := sub_ne_zero.mpr hx,
+  have hxx: (P_y - Q_y) / (P_x - Q_x) * ((P_y - Q_y) / (P_x - Q_x)) +
+  E.a1 * ((P_y - Q_y) / (P_x - Q_x)) - E.a2 - P_x - Q_x ≠ Q_x,
+  {
+    intro hc,
+    simp [*] at hPQ'',
+    apply hPQ'',
+    field_simp [hx'],
+    ring,
+  },
+  simp [*],
+  set sl := (P_y - Q_y) / (P_x - Q_x) with hsl,
+  set d := sl * sl + E.a1 * sl - E.a2 - P_x - Q_x - Q_x with hd,
+  set n := -E.a3 - E.a1 * (sl * sl + E.a1 * sl - E.a2 - P_x - Q_x) -
+    (P_y + sl * (sl * sl + E.a1 * sl - E.a2 - P_x - Q_x) - sl * P_x) -
+    (-E.a3 - E.a1 * Q_x - Q_y) with hn,
+  rw better_split,
+  split,
+  {
+    rw ←sub_eq_zero,
+    have hden : d ≠ 0,
+    {
+      rw hd,
+      intro hc,
+      apply hxx,
+      rw [←sub_eq_zero, ←hc],
+    },
+    suffices : n*n + E.a1 * n * d - E.a2*d*d -
+    (sl * sl + E.a1 * sl - E.a2 - P_x - Q_x)*d*d - Q_x*d*d - P_x*d*d = 0,
+    {
+      rw [show 0 = 0 / (d*d), from (zero_div (d * d)).symm, ←this],
+      field_simp [hden],
+      ring,
+    },
+    have hkey : -P_x*sl + Q_x*sl + P_y - Q_y = 0,
+    {
+      rw hsl,
+      field_simp [hxx],
+      ring,
+    },
+    have H:  (-P_x*sl + Q_x*sl + P_y - Q_y) * (E.a1^2*sl + 3*E.a1*sl^2 + 2*sl^3 - P_x*E.a1 -
+      2*Q_x*E.a1 - E.a1*E.a2 - 3*P_x*sl - 3*Q_x*sl - 2*E.a2*sl + P_y - Q_y) = 0,
+    {
+      rw hkey,
+      ring,
+    },
+    rw [←H, hn, hd],
+    ring,
+  },
+  {
+    intro h0,
+    rw h0,
+    replace hxx : d ≠ 0,
+    {
+      intro hc,
+      apply hxx,
+      rw [←sub_eq_zero, ←hc],
+    },
+    rw ←sub_eq_zero,
+    suffices : (E.a1*d + sl*d + n) * (E.a1*sl + sl^2 - 2*P_x - Q_x - E.a2) / d = 0,
+    {
+      have HH : (-E.a3 * d - E.a1 * P_x * d -
+      (-E.a3 * d - E.a1 * (sl * sl + E.a1 * sl - E.a2 - P_x - Q_x) * d -
+      (P_y + sl * (sl * sl + E.a1 * sl - E.a2 - P_x - Q_x) - sl * P_x) * d + n * P_x -
+       n * (sl * sl + E.a1 * sl - E.a2 - P_x - Q_x)) - P_y * d) / d= 0,
+      {
+        simp only [hxx, div_eq_zero_iff, or_false] at this ⊢,
+        rw ←this,
+        ring,
+      },
+      rw ←HH,
+      field_simp [hxx],
+      ring,
+    },
+    simp [hxx],
+    left,
+    rw [hd, hsl, hn],
+    field_simp [hxx],
+    ring,
+  }
+end
+
+example (a b : K) (h : b ≠ 0) : a / b = 0 → a = 0 :=
+begin
+  intro hh,
+  simp [h] at hh,
+  exact hh,
 end
 
 @[simp]
@@ -996,8 +1682,7 @@ end
 
 lemma two_twelve
 (h : ((P + Q ≠ R) ∧ (Q + R ≠ P)) ∨ P = 0 ∨ Q = 0 ∨ R = 0 ∨ P+Q = 0 ∨ Q+R = 0 ∨ P + Q + R = 0 ∨ P + (Q + R) = 0 ∨
-P = Q ∨ Q = R ∨ P = R )
- : P + Q + R = P + (Q + R) :=
+P = Q ∨ Q = R ∨ P = R ) : P + Q + R = P + (Q + R) :=
 begin
   by_cases hPz : P = 0,
   {subst hPz, simp },
