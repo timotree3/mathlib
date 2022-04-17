@@ -578,7 +578,7 @@ lemma mem_zpowers_iff_mem_range_order_of [decidable_eq G] :
   y ∈ subgroup.zpowers x ↔ y ∈ (finset.range (order_of x)).image ((^) x : ℕ → G) :=
 by rw [← mem_powers_iff_mem_zpowers, mem_powers_iff_mem_range_order_of]
 
-@[to_additive decidable_zmultiples]
+@[to_additive]
 noncomputable instance decidable_zpowers [decidable_eq G] :
   decidable_pred (∈ subgroup.zpowers x) :=
 begin
@@ -588,18 +588,18 @@ begin
 end
 
 /-- The equivalence between `fin (order_of x)` and `subgroup.zpowers x`, sending `i` to `x ^ i`. -/
-@[to_additive fin_equiv_zmultiples
+@[to_additive
 "The equivalence between `fin (add_order_of a)` and `subgroup.zmultiples a`, sending `i`
 to `i • a`."]
 noncomputable def fin_equiv_zpowers (x : G) :
   fin (order_of x) ≃ (subgroup.zpowers x : set G) :=
 (fin_equiv_powers x).trans (equiv.set.of_eq (powers_eq_zpowers x))
 
-@[simp, to_additive fin_equiv_zmultiples_apply]
+@[simp, to_additive]
 lemma fin_equiv_zpowers_apply {n : fin (order_of x)} :
   fin_equiv_zpowers x n = ⟨x ^ (n : ℕ), n, zpow_coe_nat x n⟩ := rfl
 
-@[simp, to_additive fin_equiv_zmultiples_symm_apply]
+@[simp, to_additive]
 lemma fin_equiv_zpowers_symm_apply (x : G) (n : ℕ)
   {hn : ∃ (m : ℤ), x ^ m = x ^ n} :
   ((fin_equiv_zpowers x).symm ⟨x ^ n, hn⟩) = ⟨n % order_of x, nat.mod_lt _ (order_of_pos x)⟩ :=
@@ -608,14 +608,14 @@ by { rw [fin_equiv_zpowers, equiv.symm_trans_apply, equiv.set.of_eq_symm_apply],
 
 /-- The equivalence between `subgroup.zpowers` of two elements `x, y` of the same order, mapping
   `x ^ i` to `y ^ i`. -/
-@[to_additive zmultiples_equiv_zmultiples
+@[to_additive
 "The equivalence between `subgroup.zmultiples` of two elements `a, b` of the same additive order,
   mapping `i • a` to `i • b`."]
 noncomputable def zpowers_equiv_zpowers (h : order_of x = order_of y) :
   (subgroup.zpowers x : set G) ≃ (subgroup.zpowers y : set G) :=
 (fin_equiv_zpowers x).symm.trans ((fin.cast h).to_equiv.trans (fin_equiv_zpowers y))
 
-@[simp, to_additive zmultiples_equiv_zmultiples_apply]
+@[simp, to_additive]
 lemma zpowers_equiv_zpowers_apply (h : order_of x = order_of y)
   (n : ℕ) : zpowers_equiv_zpowers h ⟨x ^ n, n, zpow_coe_nat x n⟩ = ⟨y ^ n, n, zpow_coe_nat y n⟩ :=
 begin
