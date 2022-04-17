@@ -601,7 +601,7 @@ def zmultiples_hom [add_group A] : A ≃ (ℤ →+ A) :=
   right_inv := λ f, add_monoid_hom.ext_int $ one_zsmul (f 1) }
 
 attribute [to_additive multiples_hom] powers_hom
-attribute [to_additive zmultiples_hom] zpowers_hom
+attribute [to_additive] zpowers_hom
 
 variables {M G A}
 
@@ -630,12 +630,12 @@ attribute [to_additive multiples_hom_symm_apply] powers_hom_symm_apply
 @[simp] lemma zmultiples_hom_apply [add_group A] (x : A) (n : ℤ) :
   zmultiples_hom A x n = n • x := rfl
 
-attribute [to_additive zmultiples_hom_apply] zpowers_hom_apply
+attribute [to_additive] zpowers_hom_apply
 
 @[simp] lemma zmultiples_hom_symm_apply [add_group A] (f : ℤ →+ A) :
   (zmultiples_hom A).symm f = f 1 := rfl
 
-attribute [to_additive zmultiples_hom_symm_apply] zpowers_hom_symm_apply
+attribute [to_additive] zpowers_hom_symm_apply
 
 -- TODO use to_additive in the rest of this file
 
