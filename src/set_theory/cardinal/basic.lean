@@ -612,6 +612,14 @@ induction_on a $ λ α, mk_congr $
 
 theorem sum_const' (ι : Type u) (a : cardinal.{u}) : sum (λ _:ι, a) = #ι * a := by simp
 
+@[simp] theorem sum_add_distrib {ι} (f g : ι → cardinal) :
+  sum (f + g) = sum f + sum g :=
+begin
+  have h := mk_congr (equiv.sigma_sum_distrib (quotient.out ∘ f) (quotient.out ∘ g)),
+  simp only [mk_sigma, mk_sum, mk_out, lift_id] at h,
+  exact h,
+end
+
 theorem sum_le_sum {ι} (f g : ι → cardinal) (H : ∀ i, f i ≤ g i) : sum f ≤ sum g :=
 ⟨(embedding.refl _).sigma_map $ λ i, classical.choice $
   by have := H i; rwa [← quot.out_eq (f i), ← quot.out_eq (g i)] at this⟩
