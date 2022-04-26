@@ -302,7 +302,7 @@ variables {L} [is_neg_invariant μ]
 
 lemma convolution_exists_at_flip :
   convolution_exists_at g f x L.flip μ ↔ convolution_exists_at f g x L μ :=
-by simp_rw [convolution_exists_at, ← integrable_comp_sub_left μ (λ t, L (f t) (g (x - t))) x,
+by simp_rw [convolution_exists_at, ← integrable_comp_sub_left (λ t, L (f t) (g (x - t))) x,
   sub_sub_cancel, flip_apply]
 
 lemma convolution_exists_at.integrable_swap (h : convolution_exists_at f g x L μ) :
@@ -333,3 +333,7 @@ lemma has_compact_support.convolution_exists_right_of_continuous_left
 end comm_group
 
 end convolution_exists
+
+end measurability
+
+end nondiscrete_normed_field
