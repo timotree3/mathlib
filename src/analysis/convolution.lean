@@ -7,6 +7,7 @@ import measure_theory.group.integration
 import measure_theory.group.prod
 import measure_theory.function.locally_integrable
 import analysis.calculus.specific_functions
+import analysis.calculus.parametric_integral
 
 /-!
 # Convolution of functions
@@ -388,7 +389,7 @@ by { ext, exact (hfg x).distrib_add (hfg' x) }
 lemma convolution_exists_at.add_distrib {x : G} (hfg : convolution_exists_at f g x L μ)
   (hfg' : convolution_exists_at f' g x L μ) :
   ((f + f') ⋆[L, μ] g) x = (f ⋆[L, μ] g) x + (f' ⋆[L, μ] g) x :=
-by simp only [convolution_def, L.map_add₂', pi.add_apply, integral_add hfg hfg']
+by simp only [convolution_def, L.map_add₂, pi.add_apply, integral_add hfg hfg']
 
 lemma convolution_exists.add_distrib (hfg : convolution_exists f g L μ)
   (hfg' : convolution_exists f' g L μ) : (f + f') ⋆[L, μ] g = f ⋆[L, μ] g + f' ⋆[L, μ] g :=
