@@ -1103,6 +1103,19 @@ theorem sup_eq_of_range_eq {ι ι'} {f : ι → ordinal} {g : ι' → ordinal}
   (h : set.range f = set.range g) : sup.{u (max v w)} f = sup.{v (max u w)} g :=
 (sup_le_of_range_subset h.le).antisymm (sup_le_of_range_subset.{v u w} h.ge)
 
+@[simp] theorem sup_sum {α : Type u} {β : Type v} (f : α ⊕ β → ordinal.{max u v w}) :
+  sup.{(max u v) w} f = max (sup.{u (max v w)} (f ∘ sum.inl)) (sup.{v (max u w)} (f ∘ sum.inr)) :=
+begin
+  apply le_antisymm,
+  { apply sup_le,
+    rintro (a | b),
+    { exact le_max_of_le_left (le_sup _ a) },
+    { exact le_max_of_le_right (le_sup _ b) } },
+  { apply max_le,
+    { exact sup_le_of_range_subset.{u (max u v) w} (range_comp_subset_range _ _) },
+    { exact sup_le_of_range_subset.{v (max u v) w} (range_comp_subset_range _ _) } }
+end
+
 lemma unbounded_range_of_sup_ge {α β : Type u} (r : α → α → Prop) [is_well_order α r] (f : β → α)
   (h : type r ≤ sup.{u u} (typein r ∘ f)) : unbounded r (range f) :=
 (not_bounded_iff _).1 $ λ ⟨x, hx⟩, not_lt_of_le h $ lt_of_le_of_lt
