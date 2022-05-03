@@ -312,6 +312,74 @@ section nat
 
 variables {𝒢 : filtration ℕ m0} [sigma_finite_filtration μ 𝒢]
 
+section stopping
+
+variables {τ σ : α → ℕ}
+
+lemma strongly_measurable_todo {f : ℕ → α → E} (h : martingale f 𝒢 μ) (hτ : is_stopping_time 𝒢 τ)
+  (i : ℕ) :
+  strongly_measurable[hτ.measurable_space] ({x | τ x ≤ i}.indicator (f i)) :=
+begin
+  refine strongly_measurable.indicator _ _,
+  { sorry, },
+  { rw is_stopping_time.measurable_set,
+    intro j,
+    by_cases hij : i ≤ j,
+    { exact measurable_set.inter (𝒢.mono hij _ (hτ i)) (hτ j), },
+    { }, },
+end
+
+lemma condexp_indicator_todo'' {f : α → E} {s : set α} {i : ℕ}
+  (hf_int : integrable f μ) (hs : measurable_set[𝒢 i] s) :
+  μ[s.indicator f | 𝒢 i, 𝒢.le i] =ᵐ[μ] s.indicator (μ[f | 𝒢 i, 𝒢.le i]) :=
+begin
+  refine (ae_eq_condexp_of_forall_set_integral_eq _ _ _ _ _).symm,
+  { exact hf_int.indicator (𝒢.le i _ hs), },
+  sorry,
+  sorry,
+  sorry,
+end
+
+lemma condexp_indicator_todo' {f : α → E} (hτ : is_stopping_time 𝒢 τ) {i : ℕ} :
+  μ[{x | τ x = i}.indicator f | hτ.measurable_space, hτ.measurable_space_le]
+    = μ[{x | τ x = i}.indicator f | 𝒢 i, 𝒢.le i] :=
+begin
+  sorry,
+end
+
+lemma condexp_indicator_todo {f : ℕ → α → E} (h : martingale f 𝒢 μ) (hτ : is_stopping_time 𝒢 τ)
+  {i n : ℕ} (hin : i ≤ n) :
+  {x | τ x = i}.indicator (f i)
+    = μ[{x | τ x = i}.indicator (f n) | hτ.measurable_space, hτ.measurable_space_le] :=
+begin
+  have hfi_eq : f i = μ[f n | 𝒢 i, 𝒢.le i], sorry,
+  rw hfi_eq,
+  refine (condexp_of_strongly_measurable _ ((h.integrable i).indicator (𝒢.le _ _ (hτ i)))).symm,
+  exact strongly_measurable_todo h hτ i,
+end
+
+lemma martingale.stopped_value_eq_of_le_const {f : ℕ → α → E}
+  (h : martingale f 𝒢 μ) (hτ : is_stopping_time 𝒢 τ) {n : ℕ} (hτ_le : ∀ x, τ x ≤ n) :
+  stopped_value f τ =ᵐ[μ] μ[f n | hτ.measurable_space, hτ.measurable_space_le] :=
+begin
+  rw [stopped_value_eq hτ_le],
+  swap, apply_instance,
+  sorry,
+end
+
+lemma martingale.stopped_value_eq_of_le {f : ℕ → α → E}
+  (h : martingale f 𝒢 μ) (hτ : is_stopping_time 𝒢 τ) (hσ : is_stopping_time 𝒢 σ) {i : ℕ}
+  (hτ_le : ∀ x, τ x ≤ i) (hστ : σ ≤ τ) :
+  stopped_value f σ =ᵐ[μ] μ[stopped_value f τ | hσ.measurable_space, hσ.measurable_space_le] :=
+begin
+  rw [stopped_value_eq hτ_le, stopped_value_eq (λ x, (hστ x).trans (hτ_le x))],
+  swap, apply_instance,
+  swap, apply_instance,
+  sorry,
+end
+
+end stopping
+
 namespace submartingale
 
 lemma integrable_stopped_value [has_le E] {f : ℕ → α → E} (hf : submartingale f 𝒢 μ) {τ : α → ℕ}
