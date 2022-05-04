@@ -94,10 +94,11 @@ section no_measurability
 
 variables [group G] [topological_space G]
 
-@[to_additive]
-lemma has_compact_support.mconvolution_integrand_bound_right (hcg : has_compact_support g)
+lemma has_compact_support.convolution_integrand_bound_right {G} [add_group G] [topological_space G]
+  {f : G → E} {g : G → E'}
+  (hcg : has_compact_support g)
   (hg : continuous g) {x t : G} {s : set G} (hx : x ∈ s) :
-  ∥L (f t) (g (x / t))∥ ≤ ((tsupport g)⁻¹ * s).indicator (λ t, ∥L∥ * ∥f t∥ * (⨆ i, ∥g i∥)) t :=
+  ∥L (f t) (g (x - t))∥ ≤ (-tsupport g + s).indicator (λ t, ∥L∥ * ∥f t∥ * (⨆ i, ∥g i∥)) t :=
 begin
   refine le_indicator (λ t ht, _) (λ t ht, _) t,
   { refine (L.le_op_norm₂ _ _).trans _,
@@ -111,9 +112,23 @@ begin
 end
 
 @[to_additive]
-lemma continuous.mconvolution_integrand_fst [has_continuous_inv G] (hg : continuous g) (t : G) :
+lemma has_compact_support.mconvolution_integrand_bound_right (hcg : has_compact_support g)
+  (hg : continuous g) {x t : G} {s : set G} (hx : x ∈ s) :
+  ∥L (f t) (g (x / t))∥ ≤ ((tsupport g)⁻¹ * s).indicator (λ t, ∥L∥ * ∥f t∥ * (⨆ i, ∥g i∥)) t :=
+@has_compact_support.convolution_integrand_bound_right _ _ _ _ _ _ _ _ _ _ _ L
+  (additive G) _ _inst_11 _ _ hcg hg x t s hx
+
+@[to_additive]
+lemma continuous.mconvolution_integrand_fst [has_continuous_div G] (hg : continuous g) (t : G) :
   continuous (λ x, L (f t) (g (x / t))) :=
-L.continuous₂.comp₂ continuous_const $ hg.comp $ continuous_id.div continuous_const
+L.continuous₂.comp₂ continuous_const $ hg.comp $ continuous_id.div' continuous_const
+
+lemma has_compact_support.convolution_integrand_bound_left {G} [add_group G] [topological_space G]
+  {f : G → E} {g : G → E'} (hcf : has_compact_support f)
+  (hf : continuous f) {x t : G} {s : set G} (hx : x ∈ s) :
+  ∥L (f (x / t)) (g t)∥ ≤ ((tsupport f)⁻¹ * s).indicator (λ t, ∥L∥ * (⨆ i, ∥f i∥) * ∥g t∥) t :=
+by { convert hcf.mconvolution_integrand_bound_right L.flip hf hx,
+  simp_rw [L.op_norm_flip, mul_right_comm] }
 
 @[to_additive]
 lemma has_compact_support.mconvolution_integrand_bound_left (hcf : has_compact_support f)
@@ -130,8 +145,13 @@ variables [measurable_space G] {μ : measure G}
 
 /-- The convolution of `f` and `g` exists at `x` when the function `t ↦ L (f t) (g (x / t))` is
   integrable. There are various conditions on `f` and `g` to prove this. -/
-@[to_additive /-" The convolution of `f` and `g` exists at `x` when the function `t ↦ L (f t) (g (x / t))` is
-  integrable. There are various conditions on `f` and `g` to prove this. "-/]
+def convolution_exists_at [has_sub G] (f : G → E) (g : G → E') (x : G) (L : E →L[𝕜] E' →L[𝕜] F)
+  (μ : measure G . volume_tac) : Prop :=
+integrable (λ t, L (f t) (g (x - t))) μ
+
+/-- The convolution of `f` and `g` exists at `x` when the function `t ↦ L (f t) (g (x / t))` is
+  integrable. There are various conditions on `f` and `g` to prove this. -/
+@[to_additive, to_additive_ignore_args 1]
 def mconvolution_exists_at [has_div G] (f : G → E) (g : G → E') (x : G) (L : E →L[𝕜] E' →L[𝕜] F)
   (μ : measure G . volume_tac) : Prop :=
 integrable (λ t, L (f t) (g (x / t))) μ
