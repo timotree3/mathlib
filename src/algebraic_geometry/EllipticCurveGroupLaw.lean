@@ -60,10 +60,6 @@ and the projective curve meets this line at the solutions to `X³=0`,
 which is the point `[0:1:0]` with multiplicity 3.
 
 -/
-@[simp]
-def satisfies_equation (E : EllipticCurve K) (x y : K) : Prop :=
-y^2 + E.a1*x*y + E.a3*y = x^3 + E.a2*x^2 + E.a4*x + E.a6
-
 
 inductive points (E : EllipticCurve K)
 | zero : points -- the so-called "point at infinity".
@@ -116,11 +112,7 @@ end
 lemma some_ne_zero {E : EllipticCurve K} {x y : K} {h: satisfies_equation E x y} :
   some x y h ≠ zero := by tauto
 
-lemma no_repeated_roots {E : EllipticCurve K} {x y : K} (h : satisfies_equation E x y)
-(h' : y + y + E.a1 * x + E.a3 = 0) : 3*x*x + 2*E.a2*x + E.a4 - E.a1 * y ≠ 0 :=
-begin
-  sorry
-end
+
 
 /--
 
@@ -958,7 +950,7 @@ begin
         rw ←Q_h,
         ring,
       },
-      have hc := no_repeated_roots P_h h2x,
+      have hc := no_repeated_roots E P_h h2x,
       by_contradiction hQy,
       apply hc,
       replace h2y :
@@ -1103,7 +1095,7 @@ begin
   },
   norm_num at h_left,
   simp [*] at h_left,
-  have hc := no_repeated_roots P_h hkey,
+  have hc := no_repeated_roots E P_h hkey,
   contradiction,
 end
 
@@ -1304,7 +1296,7 @@ begin
   set dQ := Q_y + Q_y + E.a1 * Q_x + E.a3 with hdQ,
   set eqlhs := poly1 + (P_y ^ 2 + E.a1 * P_x * P_y + E.a3 * P_y - (P_x ^ 3 + E.a2 * P_x ^ 2 + E.a4 * P_x + E.a6)) - (Q_y ^ 2 + E.a1 * Q_x * Q_y + E.a3 * Q_y - (Q_x ^ 3 + E.a2 * Q_x ^ 2 + E.a4 * Q_x + E.a6))
   with heq,
-  have : poly1 * dP^2 + dP * (dQ - dP) * eqlhs + eqlhs^2 = 0, by {rw [h1, eq], ring},
+  have : poly1 * dP^2 + dP * (dQ - dP) * eqlhs + eqlhs^2 = 0, by {rw [h1, heq, eq], ring},
   rw [(show 2*P_y = P_y + P_y, by ring), ←hdP],
   have haux: ∀ a, a*dP^2*(P_x-Q_x)^2 = 0 → a = 0,
     by {exact λ _ h, by {simpa [hP2, hx'] using h}},
@@ -1677,6 +1669,11 @@ lemma assoc_aux'' {P : points E} (hz : P ≠ 0) (hneg : P + P ≠ 0)
 (htwo : (P + P) + (P + P) ≠ 0) (hPP1 : P + P ≠ P) (hPP2 : P + P ≠ -P)
 (hPPP1 : P + P + P ≠ P) (hPPP2 : P + P + P ≠ -P) : (P + P) + (P + P) = P + (P + (P + P)) :=
 begin
+  set Q := P + P with hQ,
+  rw [show P + Q = Q + P, by exact add_comm _ _],
+  simp,
+  cases P, tauto,
+  clear hz,
   sorry
 end
 
@@ -1798,7 +1795,7 @@ begin
         rw [←add_left_cancel Q, h],
         simp },
       rw add_comm at hPPR,
-      apply assoc_aux', all_goals {try{assumption}} },
+      apply assoc_aux'; assumption },
   },
   have hPPR' := hPPR,
   rw ←add_eq_zero_iff at hPPR',

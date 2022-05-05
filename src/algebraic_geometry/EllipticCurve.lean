@@ -6,7 +6,7 @@ Authors: Kevin Buzzard
 
 import algebra.group_power
 import data.rat.basic
-import tactic.norm_num
+import tactic.norm_num tactic.ring
 
 /-!
 # The category of elliptic curves (over a field or a PID)
@@ -79,6 +79,52 @@ lemma disc_is_unit : is_unit E.disc :=
 begin
   convert units.is_unit E.disc_unit,
   exact E.disc_unit_eq.symm
+end
+
+
+def satisfies_equation (E : EllipticCurve R) (x y : R) : Prop :=
+y^2 + E.a1*x*y + E.a3*y = x^3 + E.a2*x^2 + E.a4*x + E.a6
+
+@[simp]
+lemma satisfies_equation_def (E : EllipticCurve R) (x y : R) :
+satisfies_equation E x y ↔ y^2 + E.a1*x*y + E.a3*y = x^3 + E.a2*x^2 + E.a4*x + E.a6 := iff.rfl
+
+
+lemma no_repeated_roots [nontrivial R] {x y : R} (h : satisfies_equation E x y)
+(h' : y + y + E.a1 * x + E.a3 = 0) : 3*x*x + 2*E.a2*x + E.a4 - E.a1 * y ≠ 0 :=
+begin
+  simp at h,
+  replace h : y ^ 2 + E.a1 * x * y + E.a3 * y - x^3 - E.a2 * x^2 - E.a4 * x - E.a6 = 0,
+  { rw h, ring },
+  intro h'',
+  apply is_unit.ne_zero (disc_is_unit E),
+  rw disc,
+  rw disc_aux,
+  set c1 := (E.a1^5*E.a2*x + E.a1^5*x^2 - E.a1^6*y - E.a1^4*E.a2*E.a3 + E.a1^5*E.a4 + 12*E.a1^3*E.a2^2*x
+- E.a1^4*E.a3*x + 12*E.a1^3*E.a2*x^2 - 12*E.a1^4*E.a2*y + E.a1^4*x*y - 8*E.a1^2*E.a2^2*E.a3 +
+E.a1^3*E.a3^2 + 10*E.a1^3*E.a2*E.a4 + 48*E.a1*E.a2^3*x - 42*E.a1^2*E.a2*E.a3*x - 3*E.a1^3*E.a4*x +
+48*E.a1*E.a2^2*x^2 - 36*E.a1^2*E.a3*x^2 - 48*E.a1^2*E.a2^2*y + 37*E.a1^3*E.a3*y +
+84*E.a1^2*E.a2*x*y + 72*E.a1^2*x^2*y - 74*E.a1^3*y^2 - 16*E.a2^3*E.a3 + 36*E.a1*E.a2*E.a3^2 +
+32*E.a1*E.a2^2*E.a4 - 33*E.a1^2*E.a3*E.a4 + 27*E.a1*E.a3^2*x - 168*E.a1*E.a2*E.a4*x -
+144*E.a1*E.a4*x^2 - 32*E.a2^3*y - 72*E.a1*E.a2*E.a3*y + 222*E.a1^2*E.a4*y + 288*E.a2^2*x*y -
+108*E.a1*E.a3*x*y + 840*E.a2*x^2*y + 504*x^3*y - 288*E.a1*E.a2*y^2 - 420*E.a1*x*y^2 - 27*E.a3^3 +
+72*E.a2*E.a3*E.a4 - 144*E.a1*E.a4^2 + 144*E.a1*E.a2*E.a6 + 216*E.a1*E.a6*x + 54*E.a3^2*y +
+288*E.a2*E.a4*y + 312*E.a4*x*y + 108*E.a3*y^2 - 216*E.a3*E.a6 - 216*E.a6*y) with hc1,
+set c2 := (E.a1^6 + 12*E.a1^4*E.a2 + 48*E.a1^2*E.a2^2 -
+36*E.a1^3*E.a3 + 72*E.a1^3*y + 64*E.a2^3 - 144*E.a1^2*E.a4 + 32*E.a2^2*x - 96*E.a2*x^2 +
+272*E.a1*E.a2*y + 504*E.a1*x*y - 272*E.a2*E.a4 - 288*E.a4*x - 216*E.a3*y + 432*E.a6) with hc2,
+set c3 := (-E.a1^5*y - 2*E.a1^3*E.a2*E.a3 + E.a1^4*E.a4 -
+12*E.a1^3*E.a2*y - 16*E.a1*E.a2^2*E.a3 + 3*E.a1^2*E.a3^2 + 8*E.a1^2*E.a2*E.a4 + 32*E.a2^3*x -
+32*E.a2*x^3 - 48*E.a1*E.a2^2*y + 36*E.a1^2*E.a3*y - 76*E.a1^2*y^2 + 16*E.a2^2*E.a4 +
+48*E.a1*E.a3*E.a4 - 72*E.a1^2*E.a6 - 144*E.a2*E.a4*x - 96*E.a4*x^2 - 160*E.a2*E.a3*y +
+224*E.a1*E.a4*y - 240*E.a3*x*y - 304*E.a2*y^2 - 336*x*y^2 - 64*E.a4^2 + 16*E.a2*E.a6 +
+144*E.a6*x) with hc3,
+  rw [show 0 = (y + y + E.a1 * x + E.a3) * c1 +
+  (y ^ 2 + E.a1 * x * y + E.a3 * y - x ^ 3 - E.a2 * x ^ 2 - E.a4 * x - E.a6) * c2 +
+   (3 * x * x + 2 * E.a2 * x + E.a4 - E.a1 * y) * c3, by {
+  rw [h, h', h''], ring }],
+  rw [hc1,hc2,hc3],
+  ring,
 end
 
 /-- The j-invariant of an elliptic curve. -/
