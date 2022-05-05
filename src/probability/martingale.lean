@@ -342,35 +342,40 @@ section stopping
 
 variables {τ σ : α → ℕ}
 
-lemma strongly_measurable_todo {f : ℕ → α → E} (h : martingale f 𝒢 μ) (hτ : is_stopping_time 𝒢 τ)
-  (i : ℕ) :
-  strongly_measurable[hτ.measurable_space] ({x | τ x ≤ i}.indicator (f i)) :=
+lemma _root_.strongly_measurable.indicator {α β} {m : measurable_space α} {μ : measure α}
+  [topological_space β] [has_zero β] {f : α → β}
+  (hfm : strongly_measurable f) {s : set α} (hs : measurable_set s) :
+  strongly_measurable (s.indicator f) :=
 begin
-  refine strongly_measurable.indicator _ _,
+  let g_seq := hfm.approx,
+  refine ⟨λ n, (g_seq n).piecewise s hs 0, λ x, _⟩,
+  have hg := hfm.tendsto_approx x,
+  by_cases hx : x ∈ s,
+  swap, { simp only [hx, tendsto_const_nhds, simple_func.coe_piecewise, simple_func.coe_zero,
+    set.piecewise_eq_indicator, set.indicator_of_not_mem, not_false_iff], },
+  simp only [hx, simple_func.coe_piecewise, simple_func.coe_zero, set.piecewise_eq_indicator,
+    set.indicator_of_mem],
+  exact hg,
+end
+
+lemma condexp_indicator_todo' {f : α → E} (hτ : is_stopping_time 𝒢 τ) {i : ℕ}
+  [sigma_finite (μ.trim hτ.measurable_space_le)] :
+  {x | τ x = i}.indicator (μ[f | hτ.measurable_space, hτ.measurable_space_le])
+    =ᵐ[μ] {x | τ x = i}.indicator (μ[f | 𝒢 i, 𝒢.le i]) :=
+begin
+  refine ae_eq_of_forall_set_integral_eq_of_sigma_finite' (𝒢.le i) _ _ _ _ _,
+  { intros s hs hμs,
+    refine integrable.integrable_on _,
+    exact integrable_condexp.indicator (𝒢.le i _ (is_stopping_time.measurable_set_eq hτ i)), },
+  { intros s hs hμs,
+    refine integrable.integrable_on _,
+    exact integrable_condexp.indicator (𝒢.le i _ (is_stopping_time.measurable_set_eq hτ i)), },
+  sorry,
+  { refine strongly_measurable.ae_strongly_measurable' _,
+    refine strongly_measurable.indicator _ (is_stopping_time.measurable_set_eq hτ i),
+    exact strongly_measurable_condexp,
+    sorry, },
   { sorry, },
-  { rw is_stopping_time.measurable_set,
-    intro j,
-    by_cases hij : i ≤ j,
-    { exact measurable_set.inter (𝒢.mono hij _ (hτ i)) (hτ j), },
-    { }, },
-end
-
-lemma condexp_indicator_todo'' {f : α → E} {s : set α} {i : ℕ}
-  (hf_int : integrable f μ) (hs : measurable_set[𝒢 i] s) :
-  μ[s.indicator f | 𝒢 i, 𝒢.le i] =ᵐ[μ] s.indicator (μ[f | 𝒢 i, 𝒢.le i]) :=
-begin
-  refine (ae_eq_condexp_of_forall_set_integral_eq _ _ _ _ _).symm,
-  { exact hf_int.indicator (𝒢.le i _ hs), },
-  sorry,
-  sorry,
-  sorry,
-end
-
-lemma condexp_indicator_todo' {f : α → E} (hτ : is_stopping_time 𝒢 τ) {i : ℕ} :
-  μ[{x | τ x = i}.indicator f | hτ.measurable_space, hτ.measurable_space_le]
-    = μ[{x | τ x = i}.indicator f | 𝒢 i, 𝒢.le i] :=
-begin
-  sorry,
 end
 
 lemma condexp_indicator_todo {f : ℕ → α → E} (h : martingale f 𝒢 μ) (hτ : is_stopping_time 𝒢 τ)

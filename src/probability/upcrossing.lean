@@ -5,6 +5,7 @@ Authors: Rémy Degenne
 -/
 
 import probability.martingale
+import probability.hitting_time
 
 /-! # Upcrossing lemma -/
 
@@ -24,72 +25,43 @@ noncomputable
 def sup_norm [normed_group β] (f : ι → α → β) : α → ℝ :=
 λ x, ⨆ m, ∥f m x∥
 
-variables {ℱ : filtration ℕ mα} [sigma_finite_filtration μ ℱ]
+variables {ℱ : filtration (with_top ℕ) mα} [sigma_finite_filtration μ ℱ]
 
-noncomputable def first_gt_before (f : ℕ → α → ℝ) (c : ℝ) (n : ℕ)
-  [decidable_pred (λ x, (∃ (k : ℕ) (H : k ≤ n), c < f k x))] : α → ℕ :=
-λ x, if H : ∃ k ≤ n, c < f k x then nat.find H else n + 1
+noncomputable def first_gt_before (f : with_top ℕ → α → ℝ) (c : ℝ) (n : ℕ) : α → with_top ℕ :=
+λ x, min (hitting_time f {y | c < y} x) (n + 1)
 
-lemma first_gt_before_le_iff {f : ℕ → α → ℝ} {c : ℝ} {i n : ℕ} (hin : i ≤ n) (x : α)
-  [decidable_pred (λ x, (∃ (k : ℕ) (H : k ≤ n), c < f k x))] :
+lemma first_gt_before_le_iff {f : with_top ℕ → α → ℝ} {c : ℝ} {i n : ℕ} (hin : i ≤ n) (x : α) :
   first_gt_before f c n x ≤ i ↔ ∃ k ≤ i, c < f k x :=
 begin
-  rw first_gt_before,
-  dsimp only,
-  split_ifs,
-  { simp only [nat.find_le_iff, exists_prop],
-    split; rintros ⟨k, hk⟩; refine ⟨k, _⟩,
-    { exact ⟨hk.1, hk.2.2⟩, },
-    { exact ⟨hk.1, hk.1.trans hin, hk.2⟩, }, },
-  { have : ¬ n + 1 ≤ i, from λ hni, nat.not_succ_le_self _ (hni.trans hin),
-    push_neg at h,
-    simp only [this, exists_prop, false_iff, not_exists, not_and, not_lt],
-    exact λ k hk, h k (hk.trans hin), },
+  rw [first_gt_before, min_le_iff, hitting_time_le_iff (with_top.coe_ne_top : ↑i ≠ ⊤)],
+  norm_cast,
+  have : ¬ n + 1 ≤ i := λ h, nat.not_succ_le_self n (h.trans hin),
+  simp only [this, set.mem_set_of_eq, exists_prop, or_false],
+  split; rintro ⟨k, hk_le, hk_c_lt⟩,
+  { obtain ⟨k_nat, hk_nat_eq⟩ := with_top.ne_top_iff_exists.mp
+      (hk_le.trans_lt (with_top.coe_lt_top _)).ne,
+    refine ⟨k_nat, with_top.coe_le_coe.mp (hk_nat_eq.le.trans hk_le), _⟩,
+    rwa ← hk_nat_eq at hk_c_lt, },
+  { exact ⟨k, with_top.coe_le_coe.mpr hk_le, hk_c_lt⟩, },
 end
 
-lemma first_gt_before_le_succ {f : ℕ → α → ℝ} {c : ℝ} {n : ℕ} {x : α}
-  [decidable_pred (λ x, (∃ (k : ℕ) (H : k ≤ n), c < f k x))] :
+lemma first_gt_before_le_succ {f : with_top ℕ → α → ℝ} {c : ℝ} {n : ℕ} {x : α} :
   first_gt_before f c n x ≤ n + 1 :=
-begin
-  rw first_gt_before,
-  dsimp only,
-  split_ifs,
-  { simp only [nat.find_le_iff, exists_prop],
-    obtain ⟨k, hkn, hk⟩ := h,
-    exact ⟨k, hkn.trans (nat.le_succ n), hkn, hk⟩, },
-  { exact le_rfl, },
-end
+min_le_right _ _
 
-lemma is_stopping_time_first_gt_before (f : ℕ → α → ℝ) (c : ℝ) (n : ℕ) (h : submartingale f ℱ μ)
-  [decidable_pred (λ x, (∃ (k : ℕ) (H : k ≤ n), c < f k x))] :
+lemma is_stopping_time_first_gt_before (f : with_top ℕ → α → ℝ) (c : ℝ) (n : ℕ) (h : adapted ℱ f) :
   is_stopping_time ℱ (first_gt_before f c n) :=
-begin
-  have : ∀ i ≤ n, {x | first_gt_before f c n x ≤ i} = ⋃ k ≤ i, {x | c < f k x},
-  { intros i hin,
-    ext1 x,
-    rw [set.mem_set_of_eq, first_gt_before_le_iff hin x],
-    simp_rw set.mem_Union,
-    refl, },
-  refine (λ i, _),
-  cases le_or_lt i n with hin hin,
-  { rw this i hin,
-    refine measurable_set.bUnion (set.countable_encodable _) (λ j hji, _),
-    refine @measurable_set_lt _ _ _ _ _ (ℱ i) _ _ _ _ _ (@measurable_const _ _ _(ℱ i) _) _,
-    exact (h.adapted j).measurable.mono (ℱ.mono hji) le_rfl, },
-  { convert measurable_set.univ,
-    ext1 x,
-    simp only [eq_iff_iff, iff_true],
-    exact first_gt_before_le_succ.trans hin, },
-end
+(is_stopping_time_hitting_time h (measurable_set_lt measurable_const measurable_id)).min
+  (is_stopping_time_const _ _)
 
-lemma sup_norm_Iic_gt_iff_first_gt_before_le {f : ℕ → α → ℝ} {c : ℝ} {n : ℕ} {x : α}
+lemma sup_norm_Iic_gt_iff_first_gt_before_le {f : with_top ℕ → α → ℝ} {c : ℝ} {n : ℕ} {x : α}
   [decidable_pred (λ x, (∃ (k : ℕ) (H : k ≤ n), c < f k x))]
   (hf_nonneg : ∀ n, 0 ≤ f n) :
   c < sup_norm_Iic f n x ↔ first_gt_before f c n x ≤ n :=
 begin
   rw first_gt_before_le_iff le_rfl,
   rw sup_norm_Iic,
-  simp,
+  simp only [exists_prop],
   sorry,
 end
 
@@ -102,15 +74,15 @@ calc ennreal.of_real (∫ x, f x ∂μ) = ennreal.of_real ∫ x, ∥f x∥ ∂μ
   by { congr, ext1 x, rw [← of_real_norm_eq_coe_nnnorm, real.norm_eq_abs,
                           abs_eq_self.mpr (f_nn x)] }
 
-lemma todo {f : ℕ → α → ℝ} (h : submartingale f ℱ μ) (hf_nonneg : ∀ n, 0 ≤ f n)
+lemma todo {f : with_top ℕ → α → ℝ} (h : submartingale f ℱ μ) (hf_nonneg : ∀ n, 0 ≤ f n)
   (c : ℝ) (n : ℕ) :
   (ennreal.of_real c) * μ {x | c < sup_norm_Iic f n x}
     ≤ ennreal.of_real (∫ x in {x | c < sup_norm_Iic f n x}, f n x ∂μ) :=
 begin
   classical,
-  let τ : α → ℕ := first_gt_before f c n,
+  let τ : α → with_top ℕ := first_gt_before f c n,
   have hτ_stop : is_stopping_time ℱ τ,
-    from is_stopping_time_first_gt_before f c n h,
+    from is_stopping_time_first_gt_before f c n h.adapted,
   have : ∀ i ≤ n, {x | τ x ≤ i} = ⋃ k ≤ i, {x | c < f k x},
   { intros i hin,
     ext1 x,
