@@ -340,22 +340,6 @@ section stopping
 
 variables {τ σ : α → ℕ}
 
-lemma _root_.strongly_measurable.indicator {α β} {m : measurable_space α} {μ : measure α}
-  [topological_space β] [has_zero β] {f : α → β}
-  (hfm : strongly_measurable f) {s : set α} (hs : measurable_set s) :
-  strongly_measurable (s.indicator f) :=
-begin
-  let g_seq := hfm.approx,
-  refine ⟨λ n, (g_seq n).piecewise s hs 0, λ x, _⟩,
-  have hg := hfm.tendsto_approx x,
-  by_cases hx : x ∈ s,
-  swap, { simp only [hx, tendsto_const_nhds, simple_func.coe_piecewise, simple_func.coe_zero,
-    set.piecewise_eq_indicator, set.indicator_of_not_mem, not_false_iff], },
-  simp only [hx, simple_func.coe_piecewise, simple_func.coe_zero, set.piecewise_eq_indicator,
-    set.indicator_of_mem],
-  exact hg,
-end
-
 lemma condexp_indicator_stopping_time_eq [sigma_finite_filtration μ 𝒢] {f : α → E}
   (hτ : is_stopping_time 𝒢 τ) [sigma_finite (μ.trim hτ.measurable_space_le)]
   {i : ℕ} (hf : integrable f μ) :
