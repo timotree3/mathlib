@@ -356,31 +356,33 @@ begin
   exact hg,
 end
 
-lemma condexp_indicator_stopping_time_eq {f : α → E} (hτ : is_stopping_time 𝒢 τ)
-  [sigma_finite (μ.trim hτ.measurable_space_le)] {i : ℕ} (hf : integrable f μ) :
-  μ[f | hτ.measurable_space, hτ.measurable_space_le]
-    =ᵐ[μ.restrict {x | τ x = i}] μ[f | 𝒢 i, 𝒢.le i] :=
+lemma condexp_indicator_stopping_time_eq [sigma_finite_filtration μ 𝒢] {f : α → E}
+  (hτ : is_stopping_time 𝒢 τ) [sigma_finite (μ.trim hτ.measurable_space_le)]
+  {i : ℕ} (hf : integrable f μ) :
+  μ[f | hτ.measurable_space] =ᵐ[μ.restrict {x | τ x = i}] μ[f | 𝒢 i] :=
 begin
   refine condexp_indicator_eq_todo hτ.measurable_space_le (𝒢.le i) hf (hτ.measurable_set_eq' i)
     (λ t, _),
   rw [set.inter_comm _ t, is_stopping_time.measurable_set_inter_eq_iff],
 end
 
-lemma condexp_indicator_todo {f : ℕ → α → E} (h : martingale f 𝒢 μ) (hτ : is_stopping_time 𝒢 τ)
-  {i n : ℕ} (hin : i ≤ n) [sigma_finite (μ.trim hτ.measurable_space_le)] :
-  f i =ᵐ[μ.restrict {x | τ x = i}] μ[f n | hτ.measurable_space, hτ.measurable_space_le] :=
+lemma condexp_indicator_todo [sigma_finite_filtration μ 𝒢] {f : ℕ → α → E} (h : martingale f 𝒢 μ)
+  (hτ : is_stopping_time 𝒢 τ) [sigma_finite (μ.trim hτ.measurable_space_le)]
+  {i n : ℕ} (hin : i ≤ n) :
+  f i =ᵐ[μ.restrict {x | τ x = i}] μ[f n | hτ.measurable_space] :=
 begin
-  have hfi_eq_restrict : f i =ᵐ[μ.restrict {x | τ x = i}] μ[f n | 𝒢 i, 𝒢.le i],
+  have hfi_eq_restrict : f i =ᵐ[μ.restrict {x | τ x = i}] μ[f n | 𝒢 i],
     from ae_restrict_of_ae (h.condexp_ae_eq hin).symm,
   refine hfi_eq_restrict.trans _,
-  refine condexp_indicator_eq_todo _ _ (h.integrable n) (hτ.measurable_set_eq i) (λ t, _),
+  refine condexp_indicator_eq_todo (𝒢.le i) hτ.measurable_space_le (h.integrable n)
+    (hτ.measurable_set_eq i) (λ t, _),
   rw [set.inter_comm _ t, is_stopping_time.measurable_set_inter_eq_iff],
 end
 
 lemma martingale.stopped_value_eq_of_le_const {f : ℕ → α → E}
   (h : martingale f 𝒢 μ) (hτ : is_stopping_time 𝒢 τ) {n : ℕ} (hτ_le : ∀ x, τ x ≤ n)
   [sigma_finite (μ.trim hτ.measurable_space_le)] :
-  stopped_value f τ =ᵐ[μ] μ[f n | hτ.measurable_space, hτ.measurable_space_le] :=
+  stopped_value f τ =ᵐ[μ] μ[f n | hτ.measurable_space] :=
 begin
   rw [stopped_value_eq hτ_le],
   swap, apply_instance,
@@ -391,7 +393,7 @@ lemma martingale.stopped_value_eq_of_le {f : ℕ → α → E}
   (h : martingale f 𝒢 μ) (hτ : is_stopping_time 𝒢 τ) (hσ : is_stopping_time 𝒢 σ) {i : ℕ}
   (hτ_le : ∀ x, τ x ≤ i) (hστ : σ ≤ τ) [sigma_finite (μ.trim hτ.measurable_space_le)]
   [sigma_finite (μ.trim hσ.measurable_space_le)] :
-  stopped_value f σ =ᵐ[μ] μ[stopped_value f τ | hσ.measurable_space, hσ.measurable_space_le] :=
+  stopped_value f σ =ᵐ[μ] μ[stopped_value f τ | hσ.measurable_space] :=
 begin
   rw [stopped_value_eq hτ_le, stopped_value_eq (λ x, (hστ x).trans (hτ_le x))],
   swap, apply_instance,

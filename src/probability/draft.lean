@@ -20,7 +20,7 @@ variables {α E : Type*} {m m₂ mα : measurable_space α} {μ : measure α} [n
 
 lemma condexp_ae_eq_restrict_zero (hm : m ≤ mα) [sigma_finite (μ.trim hm)] {s : set α} {f : α → E}
   (hf_int : integrable f μ) (hs : measurable_set[m] s) (hf : f =ᵐ[μ.restrict s] 0) :
-  μ[f | m, hm] =ᵐ[μ.restrict s] 0 :=
+  μ[f | m] =ᵐ[μ.restrict s] 0 :=
 begin
   haveI : sigma_finite ((μ.restrict s).trim hm),
   { rw ← restrict_trim hm _ hs,
@@ -30,7 +30,7 @@ begin
   { exact λ t ht hμt, (integrable_zero _ _ _).integrable_on, },
   { intros t ht hμt,
     rw measure.restrict_restrict (hm _ ht),
-    rw set_integral_condexp _ hf_int (ht.inter hs),
+    rw set_integral_condexp hm hf_int (ht.inter hs),
     rw ← measure.restrict_restrict (hm _ ht),
     refine set_integral_congr_ae (hm _ ht) _,
     filter_upwards [hf] with x hx h using hx, },
@@ -43,9 +43,10 @@ lemma condexp_L1_congr_ae (hm : m ≤ mα) [sigma_finite (μ.trim hm)] {f g : α
 set_to_fun_congr_ae _ h
 
 lemma condexp_congr_ae (hm : m ≤ mα) [sigma_finite (μ.trim hm)] {f g : α → E} (h : f =ᵐ[μ] g) :
-  μ[f | m, hm] =ᵐ[μ] μ[g | m, hm] :=
-(condexp_ae_eq_condexp_L1 f).trans
-  (filter.eventually_eq.trans (by rw condexp_L1_congr_ae hm h) (condexp_ae_eq_condexp_L1 g).symm)
+  μ[f | m] =ᵐ[μ] μ[g | m] :=
+(condexp_ae_eq_condexp_L1 hm f).trans
+  (filter.eventually_eq.trans (by rw condexp_L1_congr_ae hm h)
+  (condexp_ae_eq_condexp_L1 hm g).symm)
 
 lemma indicator_ae_eq_of_restrict_compl_ae_eq_zero {E} [has_zero E] {s : set α} {f : α → E}
   (hs : measurable_set s) (hf : f =ᵐ[μ.restrict sᶜ] 0) :
@@ -62,38 +63,38 @@ end
 lemma condexp_indicator_aux (hm : m ≤ mα) [sigma_finite (μ.trim hm)]
   {s : set α} {f : α → E}
   (hf_int : integrable f μ) (hs : measurable_set[m] s) (hf : f =ᵐ[μ.restrict sᶜ] 0) :
-  s.indicator (μ[f | hm]) =ᵐ[μ] μ[s.indicator f | hm] :=
+  s.indicator (μ[f | m]) =ᵐ[μ] μ[s.indicator f | m] :=
 begin
   have hsf_zero : ∀ g : α → E, g =ᵐ[μ.restrict sᶜ] 0 → s.indicator g =ᵐ[μ] g,
     from λ g, indicator_ae_eq_of_restrict_compl_ae_eq_zero (hm _ hs),
-  refine (hsf_zero (μ[f | hm]) (condexp_ae_eq_restrict_zero hm hf_int hs.compl hf)).trans _,
+  refine (hsf_zero (μ[f | m]) (condexp_ae_eq_restrict_zero hm hf_int hs.compl hf)).trans _,
   exact condexp_congr_ae hm (hsf_zero f hf).symm,
 end
 
 lemma condexp_indicator (hm : m ≤ mα) [sigma_finite (μ.trim hm)] {s : set α} {f : α → E}
   (hf_int : integrable f μ) (hs : measurable_set[m] s) :
-  μ[s.indicator f | hm] =ᵐ[μ] s.indicator (μ[f | hm]) :=
+  μ[s.indicator f | m] =ᵐ[μ] s.indicator (μ[f | m]) :=
 begin
   -- use `have` to perform what should be the first calc step because of an error I don't
   -- understand
-  have : s.indicator (μ[f|hm]) =ᵐ[μ] s.indicator (μ[s.indicator f + sᶜ.indicator f|hm]),
+  have : s.indicator (μ[f|m]) =ᵐ[μ] s.indicator (μ[s.indicator f + sᶜ.indicator f|m]),
     by rw set.indicator_self_add_compl s f,
   refine (this.trans _).symm,
-  calc s.indicator (μ[s.indicator f + sᶜ.indicator f|hm])
-      =ᵐ[μ] s.indicator (μ[s.indicator f|hm] + μ[sᶜ.indicator f|hm]) :
+  calc s.indicator (μ[s.indicator f + sᶜ.indicator f|m])
+      =ᵐ[μ] s.indicator (μ[s.indicator f|m] + μ[sᶜ.indicator f|m]) :
     begin
-      have : μ[s.indicator f + sᶜ.indicator f|hm] =ᵐ[μ] μ[s.indicator f|hm] + μ[sᶜ.indicator f|hm],
+      have : μ[s.indicator f + sᶜ.indicator f|m] =ᵐ[μ] μ[s.indicator f|m] + μ[sᶜ.indicator f|m],
         from condexp_add (hf_int.indicator (hm _ hs)) (hf_int.indicator (hm _ hs.compl)),
       filter_upwards [this] with x hx,
       classical,
       rw [set.indicator_apply, set.indicator_apply, hx],
     end
-  ... = s.indicator (μ[s.indicator f|hm]) + s.indicator (μ[sᶜ.indicator f|hm]) :
+  ... = s.indicator (μ[s.indicator f|m]) + s.indicator (μ[sᶜ.indicator f|m]) :
     s.indicator_add' _ _
-  ... =ᵐ[μ] s.indicator (μ[s.indicator f|hm]) + s.indicator (sᶜ.indicator (μ[sᶜ.indicator f|hm])) :
+  ... =ᵐ[μ] s.indicator (μ[s.indicator f|m]) + s.indicator (sᶜ.indicator (μ[sᶜ.indicator f|m])) :
     begin
       refine filter.eventually_eq.rfl.add _,
-      have : sᶜ.indicator (μ[sᶜ.indicator f|hm]) =ᵐ[μ] μ[sᶜ.indicator f|hm],
+      have : sᶜ.indicator (μ[sᶜ.indicator f|m]) =ᵐ[μ] μ[sᶜ.indicator f|m],
       { refine (condexp_indicator_aux hm (hf_int.indicator (hm _ hs.compl)) hs.compl _).trans _,
         { exact indicator_ae_eq_restrict_compl (hm _ hs.compl), },
         { rw [set.indicator_indicator, set.inter_self], }, },
@@ -102,9 +103,9 @@ begin
       { simp only [hx, hxs, set.indicator_of_mem], },
       { simp only [hxs, set.indicator_of_not_mem, not_false_iff], },
     end
-  ... =ᵐ[μ] s.indicator (μ[s.indicator f|hm]) :
+  ... =ᵐ[μ] s.indicator (μ[s.indicator f|m]) :
     by rw [set.indicator_indicator, set.inter_compl_self, set.indicator_empty', add_zero]
-  ... =ᵐ[μ] μ[s.indicator f|hm] :
+  ... =ᵐ[μ] μ[s.indicator f|m] :
     begin
       refine (condexp_indicator_aux hm (hf_int.indicator (hm _ hs)) hs _).trans _,
       { exact indicator_ae_eq_restrict_compl (hm _ hs), },
@@ -203,7 +204,7 @@ lemma condexp_indicator_eq_todo (hm : m ≤ mα) (hm₂ : m₂ ≤ mα) [sigma_f
   [sigma_finite (μ.trim hm₂)] {s : set α} {f : α → E}
   (hf_int : integrable f μ) (hs_m : measurable_set[m] s)
   (hs : ∀ t, measurable_set[m] (s ∩ t) ↔ measurable_set[m₂] (s ∩ t)) :
-  μ[f | m, hm] =ᵐ[μ.restrict s] μ[f | m₂, hm₂] :=
+  μ[f | m] =ᵐ[μ.restrict s] μ[f | m₂] :=
 begin
   rw ae_eq_restrict_iff_indicator_ae_eq (hm _ hs_m),
   have hs_m₂ : measurable_set[m₂] s,
@@ -214,27 +215,27 @@ begin
   { exact λ s hs hμs, integrable_condexp.integrable_on, },
   { exact λ s hs hμs, integrable_condexp.integrable_on, },
   { intros t ht hμt,
-    have : ∫ x in t, μ[s.indicator f|hm] x ∂μ = ∫ x in s ∩ t, μ[s.indicator f|hm] x ∂μ,
+    have : ∫ x in t, μ[s.indicator f|m] x ∂μ = ∫ x in s ∩ t, μ[s.indicator f|m] x ∂μ,
     { rw ← integral_add_compl (hm _ hs_m) integrable_condexp.integrable_on,
-      suffices : ∫ x in sᶜ, μ[s.indicator f|hm] x ∂μ.restrict t = 0,
+      suffices : ∫ x in sᶜ, μ[s.indicator f|m] x ∂μ.restrict t = 0,
       { by rw [this, add_zero, measure.restrict_restrict (hm _ hs_m)], },
       rw measure.restrict_restrict (measurable_set.compl (hm _ hs_m)),
-      suffices : μ[s.indicator f|hm] =ᵐ[μ.restrict sᶜ] 0,
+      suffices : μ[s.indicator f|m] =ᵐ[μ.restrict sᶜ] 0,
       { rw [set.inter_comm, ← measure.restrict_restrict (hm₂ _ ht)],
-        calc ∫ (x : α) in t, μ[s.indicator f|hm] x ∂μ.restrict sᶜ
+        calc ∫ (x : α) in t, μ[s.indicator f|m] x ∂μ.restrict sᶜ
             = ∫ (x : α) in t, 0 ∂μ.restrict sᶜ : begin
               refine set_integral_congr_ae (hm₂ _ ht) _,
               filter_upwards [this] with x hx h using hx,
             end
         ... = 0 : integral_zero _ _, },
-      refine condexp_ae_eq_restrict_zero _ (hf_int.indicator (hm _ hs_m)) hs_m.compl _,
+      refine condexp_ae_eq_restrict_zero hm (hf_int.indicator (hm _ hs_m)) hs_m.compl _,
       exact indicator_ae_eq_restrict_compl (hm _ hs_m), },
     have hst_m : measurable_set[m] (s ∩ t) := (hs _).mpr (hs_m₂.inter ht),
     simp_rw [this, set_integral_condexp hm₂ (hf_int.indicator (hm _ hs_m)) ht,
       set_integral_condexp hm (hf_int.indicator (hm _ hs_m)) hst_m,
       integral_indicator (hm _ hs_m), measure.restrict_restrict (hm _ hs_m),
        ← set.inter_assoc, set.inter_self], },
-  { have : strongly_measurable[m] (μ[s.indicator f | m, hm]) := strongly_measurable_condexp,
+  { have : strongly_measurable[m] (μ[s.indicator f | m]) := strongly_measurable_condexp,
     refine ae_strongly_measurable'_todo hm hs_m (λ t, (hs t).mp) this.ae_strongly_measurable' _,
     refine condexp_ae_eq_restrict_zero hm (hf_int.indicator (hm _ hs_m)) hs_m.compl _,
     exact indicator_ae_eq_restrict_compl (hm _ hs_m), },
