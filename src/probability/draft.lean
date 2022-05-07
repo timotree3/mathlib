@@ -59,7 +59,7 @@ begin
       implies_true_iff], },
 end
 
-lemma indicator_condexp_eq_condexp_indicator (hm : m ≤ mα) [sigma_finite (μ.trim hm)]
+lemma condexp_indicator_aux (hm : m ≤ mα) [sigma_finite (μ.trim hm)]
   {s : set α} {f : α → E}
   (hf_int : integrable f μ) (hs : measurable_set[m] s) (hf : f =ᵐ[μ.restrict sᶜ] 0) :
   s.indicator (μ[f | hm]) =ᵐ[μ] μ[s.indicator f | hm] :=
@@ -68,6 +68,48 @@ begin
     from λ g, indicator_ae_eq_of_restrict_compl_ae_eq_zero (hm _ hs),
   refine (hsf_zero (μ[f | hm]) (condexp_ae_eq_restrict_zero hm hf_int hs.compl hf)).trans _,
   exact condexp_congr_ae hm (hsf_zero f hf).symm,
+end
+
+lemma condexp_indicator (hm : m ≤ mα) [sigma_finite (μ.trim hm)] {s : set α} {f : α → E}
+  (hf_int : integrable f μ) (hs : measurable_set[m] s) :
+  μ[s.indicator f | hm] =ᵐ[μ] s.indicator (μ[f | hm]) :=
+begin
+  -- use `have` to perform what should be the first calc step because of an error I don't
+  -- understand
+  have : s.indicator (μ[f|hm]) =ᵐ[μ] s.indicator (μ[s.indicator f + sᶜ.indicator f|hm]),
+    by rw set.indicator_self_add_compl s f,
+  refine (this.trans _).symm,
+  calc s.indicator (μ[s.indicator f + sᶜ.indicator f|hm])
+      =ᵐ[μ] s.indicator (μ[s.indicator f|hm] + μ[sᶜ.indicator f|hm]) :
+    begin
+      have : μ[s.indicator f + sᶜ.indicator f|hm] =ᵐ[μ] μ[s.indicator f|hm] + μ[sᶜ.indicator f|hm],
+        from condexp_add (hf_int.indicator (hm _ hs)) (hf_int.indicator (hm _ hs.compl)),
+      filter_upwards [this] with x hx,
+      classical,
+      rw [set.indicator_apply, set.indicator_apply, hx],
+    end
+  ... = s.indicator (μ[s.indicator f|hm]) + s.indicator (μ[sᶜ.indicator f|hm]) :
+    s.indicator_add' _ _
+  ... =ᵐ[μ] s.indicator (μ[s.indicator f|hm]) + s.indicator (sᶜ.indicator (μ[sᶜ.indicator f|hm])) :
+    begin
+      refine filter.eventually_eq.rfl.add _,
+      have : sᶜ.indicator (μ[sᶜ.indicator f|hm]) =ᵐ[μ] μ[sᶜ.indicator f|hm],
+      { refine (condexp_indicator_aux hm (hf_int.indicator (hm _ hs.compl)) hs.compl _).trans _,
+        { exact indicator_ae_eq_restrict_compl (hm _ hs.compl), },
+        { rw [set.indicator_indicator, set.inter_self], }, },
+      filter_upwards [this] with x hx,
+      by_cases hxs : x ∈ s,
+      { simp only [hx, hxs, set.indicator_of_mem], },
+      { simp only [hxs, set.indicator_of_not_mem, not_false_iff], },
+    end
+  ... =ᵐ[μ] s.indicator (μ[s.indicator f|hm]) :
+    by rw [set.indicator_indicator, set.inter_compl_self, set.indicator_empty', add_zero]
+  ... =ᵐ[μ] μ[s.indicator f|hm] :
+    begin
+      refine (condexp_indicator_aux hm (hf_int.indicator (hm _ hs)) hs _).trans _,
+      { exact indicator_ae_eq_restrict_compl (hm _ hs), },
+      { rw [set.indicator_indicator, set.inter_self], },
+    end
 end
 
 lemma strongly_measurable_todo {E} [topological_space E] [has_zero E] {s : set α} {f : α → E}
@@ -141,17 +183,33 @@ begin
   exact strongly_measurable_todo hs_m hs hf_ind (λ x hxs, set.indicator_of_not_mem hxs _),
 end
 
+lemma ae_eq_restrict_iff_indicator_ae_eq {α E} [has_zero E] {m : measurable_space α} {μ : measure α}
+  {s : set α} {f g : α → E} (hs : measurable_set s) :
+  f =ᵐ[μ.restrict s] g ↔ s.indicator f =ᵐ[μ] s.indicator g :=
+begin
+  rw [filter.eventually_eq, ae_restrict_iff' hs],
+  refine ⟨λ h, _, λ h, _⟩; filter_upwards [h] with x hx,
+  { by_cases hxs : x ∈ s,
+    { simp [hxs, hx hxs], },
+    { simp [hxs], }, },
+  { intros hxs,
+    simpa [hxs] using hx, },
+end
+
 /-- TODO
 The hypothesis `(hs : ∀ t, measurable_set[m] (s ∩ t) ↔ measurable_set[m₂] (s ∩ t))` means that
 under the event `s`, the σ-algebras `m` and `m₂` are the same. -/
-lemma condexp_indicator (hm : m ≤ mα) (hm₂ : m₂ ≤ mα) [sigma_finite (μ.trim hm)]
+lemma condexp_indicator_eq_todo (hm : m ≤ mα) (hm₂ : m₂ ≤ mα) [sigma_finite (μ.trim hm)]
   [sigma_finite (μ.trim hm₂)] {s : set α} {f : α → E}
   (hf_int : integrable f μ) (hs_m : measurable_set[m] s)
   (hs : ∀ t, measurable_set[m] (s ∩ t) ↔ measurable_set[m₂] (s ∩ t)) :
-  μ[s.indicator f | m, hm] =ᵐ[μ] μ[s.indicator f | m₂, hm₂] :=
+  μ[f | m, hm] =ᵐ[μ.restrict s] μ[f | m₂, hm₂] :=
 begin
+  rw ae_eq_restrict_iff_indicator_ae_eq (hm _ hs_m),
   have hs_m₂ : measurable_set[m₂] s,
   { rwa [← set.inter_univ s, ← hs set.univ, set.inter_univ], },
+  refine (condexp_indicator hm hf_int hs_m).symm.trans _,
+  refine filter.eventually_eq.trans _ (condexp_indicator hm₂ hf_int hs_m₂),
   refine ae_eq_of_forall_set_integral_eq_of_sigma_finite' hm₂ _ _ _ _ _,
   { exact λ s hs hμs, integrable_condexp.integrable_on, },
   { exact λ s hs hμs, integrable_condexp.integrable_on, },
