@@ -359,13 +359,13 @@ begin
   exact hg,
 end
 
-lemma condexp_indicator_todo' {f : α → E} (hτ : is_stopping_time 𝒢 τ) {i : ℕ} (hf : integrable f μ)
-  [sigma_finite (μ.trim hτ.measurable_space_le)] :
+lemma condexp_indicator_stopping_time_eq {f : α → E} (hτ : is_stopping_time 𝒢 τ)
+  [sigma_finite (μ.trim hτ.measurable_space_le)] {i : ℕ} (hf : integrable f μ) :
   μ[{x | τ x = i}.indicator f | hτ.measurable_space, hτ.measurable_space_le]
     =ᵐ[μ] μ[{x | τ x = i}.indicator f | 𝒢 i, 𝒢.le i] :=
 begin
   refine condexp_indicator hτ.measurable_space_le (𝒢.le i) hf (hτ.measurable_set_eq' i) (λ t, _),
-  rw measurable_set_inter_eq_iff,
+  rw [set.inter_comm _ t, is_stopping_time.measurable_set_inter_eq_iff],
 end
 
 lemma condexp_indicator_todo {f : ℕ → α → E} (h : martingale f 𝒢 μ) (hτ : is_stopping_time 𝒢 τ)
