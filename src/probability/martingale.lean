@@ -5,6 +5,7 @@ Authors: Rémy Degenne, Kexing Ying
 -/
 import probability.notation
 import probability.stopping
+import probability.draft
 
 /-!
 # Martingales
@@ -358,24 +359,13 @@ begin
   exact hg,
 end
 
-lemma condexp_indicator_todo' {f : α → E} (hτ : is_stopping_time 𝒢 τ) {i : ℕ}
+lemma condexp_indicator_todo' {f : α → E} (hτ : is_stopping_time 𝒢 τ) {i : ℕ} (hf : integrable f μ)
   [sigma_finite (μ.trim hτ.measurable_space_le)] :
-  {x | τ x = i}.indicator (μ[f | hτ.measurable_space, hτ.measurable_space_le])
-    =ᵐ[μ] {x | τ x = i}.indicator (μ[f | 𝒢 i, 𝒢.le i]) :=
+  μ[{x | τ x = i}.indicator f | hτ.measurable_space, hτ.measurable_space_le]
+    =ᵐ[μ] μ[{x | τ x = i}.indicator f | 𝒢 i, 𝒢.le i] :=
 begin
-  refine ae_eq_of_forall_set_integral_eq_of_sigma_finite' (𝒢.le i) _ _ _ _ _,
-  { intros s hs hμs,
-    refine integrable.integrable_on _,
-    exact integrable_condexp.indicator (𝒢.le i _ (is_stopping_time.measurable_set_eq hτ i)), },
-  { intros s hs hμs,
-    refine integrable.integrable_on _,
-    exact integrable_condexp.indicator (𝒢.le i _ (is_stopping_time.measurable_set_eq hτ i)), },
-  sorry,
-  { refine strongly_measurable.ae_strongly_measurable' _,
-    refine strongly_measurable.indicator _ (is_stopping_time.measurable_set_eq hτ i),
-    exact strongly_measurable_condexp,
-    sorry, },
-  { sorry, },
+  refine condexp_indicator hτ.measurable_space_le (𝒢.le i) hf (hτ.measurable_set_eq' i) (λ t, _),
+  rw measurable_set_inter_eq_iff,
 end
 
 lemma condexp_indicator_todo {f : ℕ → α → E} (h : martingale f 𝒢 μ) (hτ : is_stopping_time 𝒢 τ)
