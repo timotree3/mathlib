@@ -185,10 +185,9 @@ begin
   exact (hτ.measurable_of_le hτ_le).subtype_mk.prod_mk measurable_id,
 end
 
-lemma measurable_stopped_value {f : ℕ → α → E} [measurable_space E] [borel_space E]
-  (h : martingale f 𝒢 μ) (hf_prog : prog_measurable 𝒢 f) (hτ : is_stopping_time 𝒢 τ) {n : ℕ}
-  (hτ_le : ∀ x, τ x ≤ n)
-  [sigma_finite (μ.trim hτ.measurable_space_le)] :
+lemma measurable_stopped_value {E} {f : ℕ → α → E} [topological_space E] [metrizable_space E]
+  [measurable_space E] [borel_space E]
+  (hf_prog : prog_measurable 𝒢 f) (hτ : is_stopping_time 𝒢 τ) :
   measurable[hτ.measurable_space] (stopped_value f τ) :=
 begin
   have h_str_meas : ∀ i, strongly_measurable[𝒢 i] (stopped_value f (λ x, min (τ x) i)),
@@ -209,26 +208,55 @@ begin
   exact (h_str_meas i).measurable ht,
 end
 
-lemma martingale.stopped_value_eq_of_le_const {f : ℕ → α → E}
-  (h : martingale f 𝒢 μ) (hτ : is_stopping_time 𝒢 τ) {n : ℕ} (hτ_le : ∀ x, τ x ≤ n)
+lemma martingale.stopped_value_eq_of_le_const [sigma_finite_filtration μ 𝒢] {f : ℕ → α → E}
+  [measurable_space E] [metrizable_space E] [borel_space E] [second_countable_topology E]
+  (h : martingale f 𝒢 μ) (hf_prog : prog_measurable 𝒢 f) (hτ : is_stopping_time 𝒢 τ) {n : ℕ}
+  (hτ_le : ∀ x, τ x ≤ n)
   [sigma_finite (μ.trim hτ.measurable_space_le)] :
   stopped_value f τ =ᵐ[μ] μ[f n | hτ.measurable_space] :=
 begin
   rw [stopped_value_eq hτ_le],
   swap, apply_instance,
-  sorry,
+  simp only [finset.sum_apply],
+  have h_fi_eq_condexp : ∀ i, i ∈ {j | j ≤ n} → {x | τ x = i}.indicator (f i)
+    =ᵐ[μ] {x | τ x = i}.indicator (μ[f n | hτ.measurable_space]),
+  { intros i hin,
+    rw ← ae_eq_restrict_iff_indicator_ae_eq (𝒢.le i _ (hτ.measurable_set_eq i)),
+    exact condexp_indicator_todo h hτ hin, },
+  have : (λ x, (finset.range (n + 1)).sum (λ i, {x : α | τ x = i}.indicator (f i) x))
+    =ᵐ[μ] (λ x, (finset.range (n + 1)).sum (λ i, {x : α | τ x = i}.indicator
+      (μ[f n | hτ.measurable_space]) x)),
+  { simp_rw filter.eventually_eq at h_fi_eq_condexp,
+    rw ← filter.eventually_all_finite (set.finite_le_nat n) at h_fi_eq_condexp,
+    filter_upwards [h_fi_eq_condexp] with x hx,
+    refine finset.sum_congr rfl (λ i hi, _),
+    rw [finset.mem_range, nat.lt_succ_iff] at hi,
+    exact hx i hi, },
+  refine this.trans (filter.eventually_of_forall (λ x, _)),
+  rw [finset.sum_indicator_eq_sum_filter, finset.sum_const],
+  suffices : (finset.filter (λ (i : ℕ), x ∈ {x : α | τ x = i}) (finset.range (n + 1))).card = 1,
+    by rw [this, one_nsmul],
+  simp_rw [set.mem_set_of_eq, finset.filter_eq, finset.mem_range, nat.lt_succ_iff,
+    if_pos (hτ_le x), finset.card_singleton],
 end
 
-lemma martingale.stopped_value_eq_of_le {f : ℕ → α → E}
-  (h : martingale f 𝒢 μ) (hτ : is_stopping_time 𝒢 τ) (hσ : is_stopping_time 𝒢 σ) {i : ℕ}
-  (hτ_le : ∀ x, τ x ≤ i) (hστ : σ ≤ τ) [sigma_finite (μ.trim hτ.measurable_space_le)]
-  [sigma_finite (μ.trim hσ.measurable_space_le)] :
+lemma martingale.stopped_value_eq_of_le [sigma_finite_filtration μ 𝒢] {f : ℕ → α → E}
+  [measurable_space E] [metrizable_space E] [borel_space E] [second_countable_topology E]
+  (h : martingale f 𝒢 μ) (hf_prog : prog_measurable 𝒢 f)
+  (hτ : is_stopping_time 𝒢 τ) (hσ : is_stopping_time 𝒢 σ) {n : ℕ}
+  (hσ_le_τ : σ ≤ τ) (hτ_le : ∀ x, τ x ≤ n)
+  [sigma_finite (μ.trim hτ.measurable_space_le)] [sigma_finite (μ.trim hσ.measurable_space_le)] :
   stopped_value f σ =ᵐ[μ] μ[stopped_value f τ | hσ.measurable_space] :=
 begin
-  rw [stopped_value_eq hτ_le, stopped_value_eq (λ x, (hστ x).trans (hτ_le x))],
-  swap, apply_instance,
-  swap, apply_instance,
-  sorry,
+  have : μ[stopped_value f τ|hσ.measurable_space]
+      =ᵐ[μ] μ[μ[f n|hτ.measurable_space] | hσ.measurable_space],
+    from condexp_congr_ae (h.stopped_value_eq_of_le_const hf_prog hτ hτ_le),
+  refine filter.eventually_eq.trans _ this.symm,
+  refine filter.eventually_eq.trans _ (condexp_condexp_of_le _ _).symm,
+  { exact h.stopped_value_eq_of_le_const hf_prog hσ (λ x, (hσ_le_τ x).trans (hτ_le x)), },
+  { exact is_stopping_time.measurable_space_mono _ _ hσ_le_τ, },
+  { exact hτ.measurable_space_le, },
+  { apply_instance, },
 end
 
 end stopping
