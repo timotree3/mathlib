@@ -209,8 +209,7 @@ begin
 end
 
 lemma martingale.stopped_value_eq_of_le_const [sigma_finite_filtration μ 𝒢] {f : ℕ → α → E}
-  [measurable_space E] [metrizable_space E] [borel_space E] [second_countable_topology E]
-  (h : martingale f 𝒢 μ) (hf_prog : prog_measurable 𝒢 f) (hτ : is_stopping_time 𝒢 τ) {n : ℕ}
+  (h : martingale f 𝒢 μ) (hτ : is_stopping_time 𝒢 τ) {n : ℕ}
   (hτ_le : ∀ x, τ x ≤ n)
   [sigma_finite (μ.trim hτ.measurable_space_le)] :
   stopped_value f τ =ᵐ[μ] μ[f n | hτ.measurable_space] :=
@@ -241,8 +240,7 @@ begin
 end
 
 lemma martingale.stopped_value_eq_of_le [sigma_finite_filtration μ 𝒢] {f : ℕ → α → E}
-  [measurable_space E] [metrizable_space E] [borel_space E] [second_countable_topology E]
-  (h : martingale f 𝒢 μ) (hf_prog : prog_measurable 𝒢 f)
+  (h : martingale f 𝒢 μ)
   (hτ : is_stopping_time 𝒢 τ) (hσ : is_stopping_time 𝒢 σ) {n : ℕ}
   (hσ_le_τ : σ ≤ τ) (hτ_le : ∀ x, τ x ≤ n)
   [sigma_finite (μ.trim hτ.measurable_space_le)] [sigma_finite (μ.trim hσ.measurable_space_le)] :
@@ -250,16 +248,15 @@ lemma martingale.stopped_value_eq_of_le [sigma_finite_filtration μ 𝒢] {f : �
 begin
   have : μ[stopped_value f τ|hσ.measurable_space]
       =ᵐ[μ] μ[μ[f n|hτ.measurable_space] | hσ.measurable_space],
-    from condexp_congr_ae (h.stopped_value_eq_of_le_const hf_prog hτ hτ_le),
+    from condexp_congr_ae (h.stopped_value_eq_of_le_const hτ hτ_le),
   refine filter.eventually_eq.trans _ this.symm,
   refine filter.eventually_eq.trans _ (condexp_condexp_of_le _ _).symm,
-  { exact h.stopped_value_eq_of_le_const hf_prog hσ (λ x, (hσ_le_τ x).trans (hτ_le x)), },
+  { exact h.stopped_value_eq_of_le_const hσ (λ x, (hσ_le_τ x).trans (hτ_le x)), },
   { exact is_stopping_time.measurable_space_mono _ _ hσ_le_τ, },
   { exact hτ.measurable_space_le, },
   { apply_instance, },
 end
 
 end stopping
-
 
 end measure_theory
