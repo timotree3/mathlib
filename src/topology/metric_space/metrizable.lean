@@ -19,7 +19,7 @@ space structure.
 -/
 
 open set filter metric
-open_locale bounded_continuous_function filter topological_space
+open_locale bounded_continuous_function filter topological_space uniformity
 
 namespace topological_space
 
@@ -45,6 +45,10 @@ instance t2_space_of_metrizable_space
   (α : Type*) [topological_space α] [metrizable_space α] : t2_space α :=
 by { letI : metric_space α := metrizable_space_metric α, apply_instance }
 
+instance metrizable_space.first_countable_topology (α : Type*) [topological_space α]
+  [metrizable_space α] : first_countable_topology α :=
+by { letI : metric_space α := metrizable_space_metric α, apply_instance }
+
 instance metrizable_space_prod (α : Type*) [topological_space α] [metrizable_space α]
   (β : Type*) [topological_space β] [metrizable_space β] :
   metrizable_space (α × β) :=
@@ -53,10 +57,6 @@ begin
   letI : metric_space β := metrizable_space_metric β,
   apply_instance
 end
-
-instance metrizable_space.subtype {α : Type*} [topological_space α] [metrizable_space α]
-  (s : set α) : metrizable_space s :=
-by { letI := metrizable_space_metric α, apply_instance }
 
 /-- Given an embedding of a topological space into a metrizable space, the source space is also
 metrizable. -/
@@ -67,6 +67,14 @@ begin
   letI : metric_space β := metrizable_space_metric β,
   exact ⟨⟨hf.comap_metric_space f, rfl⟩⟩
 end
+
+instance metrizable_space.subtype {α : Type*} [topological_space α] [metrizable_space α]
+  (s : set α) : metrizable_space s :=
+embedding_subtype_coe.metrizable_space
+
+instance metrizable_space_pi {ι : Type*} {π : ι → Type*} [fintype ι] [Π i, topological_space (π i)]
+  [Π i, metrizable_space (π i)] : metrizable_space (Π i, π i) :=
+by { letI := λ i, metrizable_space_metric (π i), apply_instance }
 
 variables (X : Type*) [topological_space X] [normal_space X] [second_countable_topology X]
 

@@ -1288,6 +1288,10 @@ by rw [map_at_top_eq, map_at_top_eq];
 from (le_infi $ assume b, let ⟨v, hv⟩ := h_eq b in infi_le_of_le v $
   by simp [set.image_subset_iff]; exact hv)
 
+lemma has_antitone_basis.with_rel {f : filter α} {s : ℕ → set α} (hs : f.has_antitone_basis s)
+  {r : ℕ → ℕ → Prop} (hr : ∀ n, ∀ᵐ 
+
+
 lemma has_antitone_basis.tendsto [semilattice_sup ι] [nonempty ι] {l : filter α}
   {s : ι → set α} (hl : l.has_antitone_basis s) {φ : ι → α}
   (h : ∀ i : ι, φ i ∈ s i) : tendsto φ at_top l  :=
@@ -1300,7 +1304,7 @@ lemma exists_seq_tendsto (f : filter α) [is_countably_generated f] [ne_bot f] :
   ∃ x : ℕ → α, tendsto x at_top f :=
 begin
   obtain ⟨B, h⟩ := f.exists_antitone_basis,
-  have := λ n, nonempty_of_mem (h.to_has_basis.mem_of_mem trivial : B n ∈ f), choose x hx,
+  have : ∀ n, (B n).nonempty, from λ n, nonempty_of_mem (h.mem _), choose x hx,
   exact ⟨x, h.tendsto hx⟩
 end
 
