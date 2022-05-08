@@ -163,6 +163,52 @@ begin
   rw [set.inter_comm _ t, is_stopping_time.measurable_set_inter_eq_iff],
 end
 
+lemma is_stopping_time.measurable_space_min_const (hτ : is_stopping_time 𝒢 τ) {i : ℕ} :
+  (hτ.min_const i).measurable_space = hτ.measurable_space ⊓ 𝒢 i :=
+by rw [hτ.measurable_space_min (is_stopping_time_const _ i),
+  is_stopping_time.measurable_space_const]
+
+lemma is_stopping_time.measurable_set_min_const_iff (hτ : is_stopping_time 𝒢 τ) (s : set α)
+  {i : ℕ} :
+  measurable_set[(hτ.min_const i).measurable_space] s
+    ↔ measurable_set[hτ.measurable_space] s ∧ measurable_set[𝒢 i] s :=
+by rw [is_stopping_time.measurable_space_min_const, measurable_space.measurable_set_inf]
+
+lemma strongly_measurable_stopped_value_of_le {E} [topological_space E] {f : ℕ → α → E}
+  (h : prog_measurable 𝒢 f) (hτ : is_stopping_time 𝒢 τ) {n : ℕ} (hτ_le : ∀ x, τ x ≤ n) :
+  strongly_measurable[𝒢 n] (stopped_value f τ) :=
+begin
+  have : stopped_value f τ = (λ (p : set.Iic n × α), f ↑(p.fst) p.snd) ∘ (λ x, (⟨τ x, hτ_le x⟩, x)),
+  { ext1 x, simp only [stopped_value, function.comp_app, subtype.coe_mk], },
+  rw this,
+  refine strongly_measurable.comp_measurable (h n) _,
+  exact (hτ.measurable_of_le hτ_le).subtype_mk.prod_mk measurable_id,
+end
+
+lemma measurable_stopped_value {f : ℕ → α → E} [measurable_space E] [borel_space E]
+  (h : martingale f 𝒢 μ) (hf_prog : prog_measurable 𝒢 f) (hτ : is_stopping_time 𝒢 τ) {n : ℕ}
+  (hτ_le : ∀ x, τ x ≤ n)
+  [sigma_finite (μ.trim hτ.measurable_space_le)] :
+  measurable[hτ.measurable_space] (stopped_value f τ) :=
+begin
+  have h_str_meas : ∀ i, strongly_measurable[𝒢 i] (stopped_value f (λ x, min (τ x) i)),
+    from λ i, strongly_measurable_stopped_value_of_le hf_prog (hτ.min_const i)
+      (λ _, min_le_right _ _),
+  intros t ht,
+  rw hτ.measurable_set,
+  intros i,
+  have : stopped_value f τ ⁻¹' t ∩ {x : α | τ x ≤ i}
+    = stopped_value f (λ x, min (τ x) i) ⁻¹' t ∩ {x : α | τ x ≤ i},
+  { ext1 x,
+    simp only [stopped_value, set.mem_inter_eq, set.mem_preimage, set.mem_set_of_eq,
+      and.congr_left_iff],
+    intro h,
+    rw min_eq_left h, },
+  rw this,
+  refine measurable_set.inter _ (hτ.measurable_set_le i),
+  exact (h_str_meas i).measurable ht,
+end
+
 lemma martingale.stopped_value_eq_of_le_const {f : ℕ → α → E}
   (h : martingale f 𝒢 μ) (hτ : is_stopping_time 𝒢 τ) {n : ℕ} (hτ_le : ∀ x, τ x ≤ n)
   [sigma_finite (μ.trim hτ.measurable_space_le)] :
