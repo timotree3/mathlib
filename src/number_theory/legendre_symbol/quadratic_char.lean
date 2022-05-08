@@ -90,6 +90,9 @@ begin
   exact char_p.neg_one_ne_one _ (ring_char F),
 end
 
+lemma neg_one_pow_eq_one_iff_even (hF : ring_char F ≠ 2) (n : ℕ) : (-1 : F) ^ n = 1 ↔ even n :=
+neg_one_pow_eq_one_iff_even $ neg_one_ne_one_of_char_ne_two hF
+
 /-- Characteristic `≠ 2` implies that `-a ≠ a` when `a ≠ 0`. -/
 lemma neg_ne_self_of_char_ne_two (hF : ring_char F ≠ 2) {a : F} (ha : a ≠ 0) : a ≠ -a :=
 begin
@@ -472,20 +475,19 @@ lemma quadratic_char_neg_one [decidable_eq F] (hF : ring_char F ≠ 2) :
   quadratic_char F (-1) = χ₄ (fintype.card F) :=
 begin
   have h₁ : (-1 : F) ≠ 0 := by { rw neg_ne_zero, exact one_ne_zero },
-  have h := quadratic_char_eq_pow_of_char_ne_two hF h₁,
-  rw [h, χ₄_eq_neg_one_pow (finite_field.odd_card_of_char_ne_two hF)],
-  set n := fintype.card F / 2,
-  cases (nat.even_or_odd n) with h₂ h₂,
-  { simp only [even.neg_one_pow h₂, eq_self_iff_true, if_true], },
-  { simp only [odd.neg_one_pow h₂, ite_eq_right_iff, finite_field.neg_one_ne_one_of_char_ne_two hF],
-    exact false.elim },
+  simp_rw [quadratic_char_eq_pow_of_char_ne_two hF h₁,
+    χ₄_eq_neg_one_pow (finite_field.odd_card_of_char_ne_two hF),
+    finite_field.neg_one_pow_eq_one_iff_even hF],
+  split_ifs with h₂;
+    try { simp only [←nat.odd_iff_not_even] at h₂ };
+    rw h₂.neg_one_pow,
 end
 
 /-- The interpretation in terms of whether `-1` is a square in `F` -/
 lemma is_square_neg_one_iff : is_square (-1 : F) ↔ fintype.card F % 4 ≠ 3 :=
 begin
-  classical, -- suggested by the linter (instead of `[decidable_eq F]`)
-  by_cases hF : (ring_char F = 2),
+  classical,
+  by_cases hF : ring_char F = 2,
   { simp only [finite_field.is_square_of_char_two hF, ne.def, true_iff],
     exact (λ hf, one_ne_zero ((nat.odd_of_mod_four_eq_three hf).symm.trans
                                 (finite_field.even_card_of_char_two hF)))},
@@ -495,12 +497,10 @@ begin
         χ₄_nat_eq_if_mod_four, h₂],
     have h₃ := nat.odd_mod_four_iff.mp h₂,
     simp only [nat.one_ne_zero, if_false, ite_eq_left_iff, ne.def],
-    norm_num,
     split,
     { intros h h',
-      have t := (of_not_not h).symm.trans h',
-      norm_num at t, },
-    exact λ h h', h' ((or_iff_left h).mp h₃), },
+      norm_num [h'] at h, },
+    exact λ h h', (h' ((or_iff_left h).mp h₃)).elim, },
 end
 
 end char
