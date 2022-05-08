@@ -477,9 +477,8 @@ begin
   set n := fintype.card F / 2,
   cases (nat.even_or_odd n) with h₂ h₂,
   { simp only [even.neg_one_pow h₂, eq_self_iff_true, if_true], },
-  { simp only [odd.neg_one_pow h₂, ite_eq_right_iff],
-    exact λ (hf : -1 = 1),
-            false.rec (1 = -1) (finite_field.neg_one_ne_one_of_char_ne_two hF hf), },
+  { simp only [odd.neg_one_pow h₂, ite_eq_right_iff, finite_field.neg_one_ne_one_of_char_ne_two hF],
+    exact false.elim },
 end
 
 /-- The interpretation in terms of whether `-1` is a square in `F` -/
