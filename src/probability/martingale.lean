@@ -5,7 +5,6 @@ Authors: Rémy Degenne, Kexing Ying
 -/
 import probability.notation
 import probability.stopping
-import probability.draft
 
 /-!
 # Martingales
@@ -348,6 +347,18 @@ begin
   refine condexp_indicator_eq_todo hτ.measurable_space_le (𝒢.le i) hf (hτ.measurable_set_eq' i)
     (λ t, _),
   rw [set.inter_comm _ t, is_stopping_time.measurable_set_inter_eq_iff],
+end
+
+lemma condexp_indicator_stopping_time_le [sigma_finite_filtration μ 𝒢] {f : α → E}
+  (hτ : is_stopping_time 𝒢 τ) [sigma_finite (μ.trim hτ.measurable_space_le)]
+  [sigma_finite (μ.trim (hτ.min_const i).measurable_space_le)]
+  {i : ℕ} (hf : integrable f μ) :
+  μ[f | hτ.measurable_space] =ᵐ[μ.restrict {x | τ x ≤ i}] μ[f | (hτ.min_const i).measurable_space] :=
+begin
+  refine condexp_indicator_eq_todo hτ.measurable_space_le (hτ.min_const i).measurable_space_le hf
+    (hτ.measurable_set_le' i) (λ t, _),
+  rw [set.inter_comm _ t],
+  sorry,
 end
 
 lemma condexp_indicator_todo [sigma_finite_filtration μ 𝒢] {f : ℕ → α → E} (h : martingale f 𝒢 μ)
