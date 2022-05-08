@@ -10,11 +10,111 @@ import probability.martingale
 # Draft
 -/
 
-namespace probability_theory
+open_locale measure_theory
+open topological_space
+
+namespace measure_theory
 
 section stopping
 
-variables {α : Type*} {τ σ : α → ℕ}
+variables {α E ι : Type*} {m : measurable_space α} {μ : measure α}
+  {𝒢 : filtration ℕ m} {τ σ : α → ℕ}
+  [normed_group E] [normed_space ℝ E] [complete_space E]
+
+lemma measurable_set_inter_le_iff [linear_order ι] {f : filtration ι m} {τ : α → ι}
+  (hτ : is_stopping_time f τ) (s : set α) (i : ι) :
+  measurable_set[hτ.measurable_space] (s ∩ {x | τ x ≤ i})
+    ↔ measurable_set[(hτ.min_const i).measurable_space] (s ∩ {x | τ x ≤ i}) :=
+begin
+  rw [is_stopping_time.measurable_set_min_iff hτ (is_stopping_time_const _ i),
+    is_stopping_time.measurable_space_const, is_stopping_time.measurable_set],
+  refine ⟨λ h, ⟨h, _⟩, λ h j, h.1 j⟩,
+  specialize h i,
+  rwa [set.inter_assoc, set.inter_self] at h,
+end
+
+lemma measurable_set_inter_le' [linear_order ι] [topological_space ι]
+  [second_countable_topology ι] [order_topology ι]
+  [measurable_space ι] [borel_space ι] {f : filtration ι m} {τ σ : α → ι}
+  (hτ : is_stopping_time f τ) (hσ : is_stopping_time f σ)
+  (s : set α) (h : measurable_set[hτ.measurable_space] (s ∩ {x | τ x ≤ σ x})) :
+  measurable_set[(hτ.min hσ).measurable_space] (s ∩ {x | τ x ≤ σ x}) :=
+begin
+  have : s ∩ {x | τ x ≤ σ x} = s ∩ {x | τ x ≤ σ x} ∩ {x | τ x ≤ σ x},
+   by rw [set.inter_assoc, set.inter_self],
+  rw this,
+  exact is_stopping_time.measurable_set_inter_le _ _ _ h,
+end
+
+lemma measurable_set_inter_le_iff' [linear_order ι] [topological_space ι]
+  [second_countable_topology ι] [order_topology ι]
+  [measurable_space ι] [borel_space ι] {f : filtration ι m} {τ σ : α → ι}
+  (hτ : is_stopping_time f τ) (hσ : is_stopping_time f σ)
+  (s : set α) :
+  measurable_set[hτ.measurable_space] (s ∩ {x | τ x ≤ σ x})
+    ↔ measurable_set[(hτ.min hσ).measurable_space] (s ∩ {x | τ x ≤ σ x}) :=
+begin
+  refine ⟨λ h, measurable_set_inter_le' hτ hσ s h, λ h, _⟩,
+  rw is_stopping_time.measurable_set_min_iff at h,
+  exact h.1,
+end
+
+lemma measurable_set_le_stopping_time (hτ : is_stopping_time 𝒢 τ) (hσ : is_stopping_time 𝒢 σ) :
+  measurable_set[hτ.measurable_space] {x | τ x ≤ σ x} :=
+begin
+  rw hτ.measurable_set,
+  intro j,
+  have : {x | τ x ≤ σ x} ∩ {x | τ x ≤ j} = {x | min (τ x) j ≤ min (σ x) j} ∩ {x | τ x ≤ j},
+  { ext1 x,
+    simp only [set.mem_inter_eq, set.mem_set_of_eq, min_le_iff, le_min_iff, le_refl, and_true,
+      and.congr_left_iff],
+    intro h,
+    simp only [h, or_self, and_true],
+    by_cases hj : j ≤ σ x,
+    { simp only [hj, h.trans hj, or_self], },
+    { simp only [hj, or_false], }, },
+  rw this,
+  refine measurable_set.inter _ (hτ.measurable_set_le j),
+  apply measurable_set_le,
+  { exact (hτ.min_const j).measurable_of_le (λ _, min_le_right _ _), },
+  { exact (hσ.min_const j).measurable_of_le (λ _, min_le_right _ _), },
+end
+
+lemma measurable_set_eq_fun_of_encodable {m : measurable_space α} {E} [measurable_space E]
+  [encodable E] [measurable_singleton_class E] {f g : α → E}
+  (hf : measurable f) (hg : measurable g) :
+  measurable_set {x | f x = g x} :=
+begin
+  have : {x | f x = g x} = ⋃ j, {x | f x = j} ∩ {x | g x = j},
+  { ext1 x, simp only [set.mem_set_of_eq, set.mem_Union, set.mem_inter_eq, exists_eq_right'], },
+  rw this,
+  refine measurable_set.Union (λ j, measurable_set.inter _ _),
+  { exact hf (measurable_set_singleton j), },
+  { exact hg (measurable_set_singleton j), },
+end
+
+lemma measurable_set_eq_stopping_time (hτ : is_stopping_time 𝒢 τ) (hσ : is_stopping_time 𝒢 σ) :
+  measurable_set[hτ.measurable_space] {x | τ x = σ x} :=
+begin
+  rw hτ.measurable_set,
+  intro j,
+  have : {x | τ x = σ x} ∩ {x | τ x ≤ j}
+    = {x | min (τ x) j = min (σ x) j} ∩ {x | τ x ≤ j} ∩ {x | σ x ≤ j},
+  { ext1 x,
+    simp only [set.mem_inter_eq, set.mem_set_of_eq],
+    refine ⟨λ h, ⟨⟨_, h.2⟩, _⟩, λ h, ⟨_, h.1.2⟩⟩,
+    { rw h.1, },
+    { rw ← h.1, exact h.2, },
+    { cases h with h' hσ_le,
+      cases h' with h_eq hτ_le,
+      rwa [min_eq_left hτ_le, min_eq_left hσ_le] at h_eq, }, },
+  rw this,
+  refine measurable_set.inter ( measurable_set.inter _ (hτ.measurable_set_le j))
+    (hσ.measurable_set_le j),
+  apply measurable_set_eq_fun_of_encodable,
+  { exact (hτ.min_const j).measurable_of_le (λ _, min_le_right _ _), },
+  { exact (hσ.min_const j).measurable_of_le (λ _, min_le_right _ _), },
+end
 
 lemma condexp_indicator_stopping_time_eq [sigma_finite_filtration μ 𝒢] {f : α → E}
   (hτ : is_stopping_time 𝒢 τ) [sigma_finite (μ.trim hτ.measurable_space_le)]
@@ -26,16 +126,28 @@ begin
   rw [set.inter_comm _ t, is_stopping_time.measurable_set_inter_eq_iff],
 end
 
-lemma condexp_indicator_stopping_time_le [sigma_finite_filtration μ 𝒢] {f : α → E}
+lemma condexp_indicator_stopping_time_le {f : α → E}
+  (hτ : is_stopping_time 𝒢 τ) (hσ : is_stopping_time 𝒢 σ)
+  [sigma_finite (μ.trim hτ.measurable_space_le)]
+  [sigma_finite (μ.trim (hτ.min hσ).measurable_space_le)]
+  (hf : integrable f μ) :
+  μ[f | hτ.measurable_space] =ᵐ[μ.restrict {x | τ x ≤ σ x}] μ[f | (hτ.min hσ).measurable_space] :=
+begin
+  refine condexp_indicator_eq_todo hτ.measurable_space_le (hτ.min hσ).measurable_space_le hf
+    (measurable_set_le_stopping_time hτ hσ) (λ t, _),
+  rw [set.inter_comm _ t, measurable_set_inter_le_iff'],
+end
+
+lemma condexp_indicator_stopping_time_le_const {f : α → E}
   (hτ : is_stopping_time 𝒢 τ) [sigma_finite (μ.trim hτ.measurable_space_le)]
-  [sigma_finite (μ.trim (hτ.min_const i).measurable_space_le)]
+  [∀ i, sigma_finite (μ.trim (hτ.min_const i).measurable_space_le)]
   {i : ℕ} (hf : integrable f μ) :
-  μ[f | hτ.measurable_space] =ᵐ[μ.restrict {x | τ x ≤ i}] μ[f | (hτ.min_const i).measurable_space] :=
+  μ[f | hτ.measurable_space]
+    =ᵐ[μ.restrict {x | τ x ≤ i}] μ[f | (hτ.min_const i).measurable_space] :=
 begin
   refine condexp_indicator_eq_todo hτ.measurable_space_le (hτ.min_const i).measurable_space_le hf
     (hτ.measurable_set_le' i) (λ t, _),
-  rw [set.inter_comm _ t],
-  sorry,
+  rw [set.inter_comm _ t, measurable_set_inter_le_iff],
 end
 
 lemma condexp_indicator_todo [sigma_finite_filtration μ 𝒢] {f : ℕ → α → E} (h : martingale f 𝒢 μ)
@@ -76,4 +188,4 @@ end
 end stopping
 
 
-end probability_theory
+end measure_theory
