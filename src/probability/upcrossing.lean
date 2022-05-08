@@ -129,7 +129,7 @@ begin
       sorry,
     end
   ... ≤ ∑ k in finset.range n,
-    ennreal.of_real ∫ x, {x : α | τ x = k}.indicator (μ[f n | ℱ k, ℱ.le k]) x ∂μ : begin
+    ennreal.of_real ∫ x, {x : α | τ x = k}.indicator (μ[f n | ℱ k]) x ∂μ : begin
       refine finset.sum_le_sum (λ k hk, _),
       refine ennreal.of_real_le_of_real _,
       sorry,  -- use submartingale
