@@ -641,18 +641,30 @@ begin
     exact le_trans (hle _) hle' },
 end
 
-lemma measurable_space_le [encodable ι] (hτ : is_stopping_time f τ) :
+lemma measurable_space_le [is_countably_generated (at_top : filter ι)] [(at_top : filter ι).ne_bot]
+  (hτ : is_stopping_time f τ) :
   hτ.measurable_space ≤ m :=
 begin
   intros s hs,
   change ∀ i, measurable_set[f i] (s ∩ {x | τ x ≤ i}) at hs,
-  rw (_ : s = ⋃ i, s ∩ {x | τ x ≤ i}),
-  { exact measurable_set.Union (λ i, f.le i _ (hs i)) },
+  obtain ⟨seq : ℕ → ι, h_seq_tendsto⟩ := at_top.exists_seq_tendsto,
+  rw (_ : s = ⋃ n, s ∩ {x | τ x ≤ seq n}),
+  { exact measurable_set.Union (λ i, f.le (seq i) _ (hs (seq i))), },
   { ext x, split; rw set.mem_Union,
-    { exact λ hx, ⟨τ x, hx, le_rfl⟩ },
+    { intros hx,
+      suffices : ∃ i, τ x ≤ seq i, from ⟨this.some, hx, this.some_spec⟩,
+      rw tendsto_at_top at h_seq_tendsto,
+      exact (h_seq_tendsto (τ x)).exists, },
     { rintro ⟨_, hx, _⟩,
-      exact hx } }
+      exact hx }, },
+  all_goals { apply_instance, },
 end
+
+example {f : filtration ℕ m} {τ : α → ℕ} (hτ : is_stopping_time f τ) : hτ.measurable_space ≤ m :=
+hτ.measurable_space_le
+
+example {f : filtration ℝ m} {τ : α → ℝ} (hτ : is_stopping_time f τ) : hτ.measurable_space ≤ m :=
+hτ.measurable_space_le
 
 @[simp] lemma measurable_space_const (f : filtration ι m) (i : ι) :
   (is_stopping_time_const f i).measurable_space = f i :=
