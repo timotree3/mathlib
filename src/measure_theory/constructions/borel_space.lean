@@ -1364,9 +1364,9 @@ begin
   rw [A, B, C, add_assoc],
 end
 
-section metric_space
+section pseudo_metric_space
 
-variables [metric_space α] [measurable_space α] [opens_measurable_space α]
+variables [pseudo_metric_space α] [measurable_space α] [opens_measurable_space α]
 variables [measurable_space β] {x : α} {ε : ℝ}
 
 open metric
@@ -1448,19 +1448,27 @@ begin
   exact h's.closure_eq.symm
 end
 
-/-- Given a compact set in a proper space, the measure of its `r`-closed thickenings converges to
-its measure as `r` tends to `0`. -/
-lemma tendsto_measure_cthickening_of_is_compact [proper_space α] {μ : measure α}
-  [is_finite_measure_on_compacts μ] {s : set α} (hs : is_compact s) :
+/-- Given a closed compact set in a proper pseudo metric space, the measure of its `r`-closed
+thickenings converges to its measure as `r` tends to `0`. -/
+lemma tendsto_measure_cthickening_of_closed_compact [proper_space α] {μ : measure α}
+  [is_finite_measure_on_compacts μ] {s : set α} (hsc : is_closed s) (hs : is_compact s) :
   tendsto (λ r, μ (cthickening r s)) (𝓝 0) (𝓝 (μ s)) :=
 tendsto_measure_cthickening_of_is_closed
-  ⟨1, zero_lt_one, (bounded.measure_lt_top hs.bounded.cthickening).ne⟩ hs.is_closed
+  ⟨1, zero_lt_one, hs.bounded.cthickening.measure_lt_top.ne⟩ hsc
 
-end metric_space
+end pseudo_metric_space
 
-section emetric_space
+/-- Given a compact set in a proper space, the measure of its `r`-closed thickenings converges to
+its measure as `r` tends to `0`. -/
+lemma tendsto_measure_cthickening_of_is_compact [metric_space α] [measurable_space α]
+  [opens_measurable_space α] [proper_space α] {μ : measure α}
+  [is_finite_measure_on_compacts μ] {s : set α} (hs : is_compact s) :
+  tendsto (λ r, μ (metric.cthickening r s)) (𝓝 0) (𝓝 (μ s)) :=
+tendsto_measure_cthickening_of_closed_compact hs.is_closed hs
 
-variables [emetric_space α] [measurable_space α] [opens_measurable_space α]
+section pseudo_emetric_space
+
+variables [pseudo_emetric_space α] [measurable_space α] [opens_measurable_space α]
 variables [measurable_space β] {x : α} {ε : ℝ≥0∞}
 
 open emetric
@@ -1502,7 +1510,7 @@ lemma ae_measurable.edist {f g : β → α} {μ : measure β}
   (hf : ae_measurable f μ) (hg : ae_measurable g μ) : ae_measurable (λ a, edist (f a) (g a)) μ :=
 (@continuous_edist α _).ae_measurable2 hf hg
 
-end emetric_space
+end pseudo_emetric_space
 
 namespace real
 open measurable_space measure_theory
@@ -1833,7 +1841,7 @@ end normed_group
 
 section limits
 
-variables [measurable_space β] [metric_space β] [borel_space β]
+variables [topological_space β] [pseudo_metrizable_space β] [measurable_space β] [borel_space β]
 
 open metric
 
@@ -1879,6 +1887,7 @@ lemma measurable_of_tendsto_metric' {ι} {f : ι → α → β} {g : α → β}
   (hf : ∀ i, measurable (f i)) (lim : tendsto f u (𝓝 g)) :
   measurable g :=
 begin
+  letI : pseudo_metric_space β := pseudo_metrizable_space_pseudo_metric β,
   apply measurable_of_is_closed', intros s h1s h2s h3s,
   have : measurable (λ x, inf_nndist (g x) s),
   { suffices : tendsto (λ i x, inf_nndist (f i x) s) u (𝓝 (λ x, inf_nndist (g x) s)),
@@ -1895,26 +1904,6 @@ lemma measurable_of_tendsto_metric {f : ℕ → α → β} {g : α → β}
   (hf : ∀ i, measurable (f i)) (lim : tendsto f at_top (𝓝 g)) :
   measurable g :=
 measurable_of_tendsto_metric' at_top hf lim
-
-/-- A limit (over a general filter) of measurable functions valued in a metrizable space is
-measurable. -/
-lemma measurable_of_tendsto_metrizable'
-  {β : Type*} [topological_space β] [metrizable_space β]
-  [measurable_space β] [borel_space β] {ι} {f : ι → α → β} {g : α → β}
-  (u : filter ι) [ne_bot u] [is_countably_generated u]
-  (hf : ∀ i, measurable (f i)) (lim : tendsto f u (𝓝 g)) :
-  measurable g :=
-begin
-  letI : metric_space β := metrizable_space_metric β,
-  exact measurable_of_tendsto_metric' u hf lim
-end
-
-/-- A sequential limit of measurable functions valued in a metrizable space is measurable. -/
-lemma measurable_of_tendsto_metrizable {β : Type*} [topological_space β] [metrizable_space β]
-  [measurable_space β] [borel_space β] {f : ℕ → α → β} {g : α → β}
-  (hf : ∀ i, measurable (f i)) (lim : tendsto f at_top (𝓝 g)) :
-  measurable g :=
-measurable_of_tendsto_metrizable' at_top hf lim
 
 lemma ae_measurable_of_tendsto_metric_ae {ι : Type*}
   {μ : measure α} {f : ι → α → β} {g : α → β}
@@ -1946,7 +1935,8 @@ lemma ae_measurable_of_tendsto_metric_ae' {μ : measure α} {f : ℕ → α → 
   ae_measurable g μ :=
 ae_measurable_of_tendsto_metric_ae at_top hf h_ae_tendsto
 
-lemma ae_measurable_of_unif_approx {μ : measure α} {g : α → β}
+lemma ae_measurable_of_unif_approx {β} [measurable_space β] [pseudo_metric_space β] [borel_space β]
+  {μ : measure α} {g : α → β}
   (hf : ∀ ε > (0 : ℝ), ∃ (f : α → β), ae_measurable f μ ∧ ∀ᵐ x ∂μ, dist (f x) (g x) ≤ ε) :
   ae_measurable g μ :=
 begin
