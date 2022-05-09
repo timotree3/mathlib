@@ -80,6 +80,15 @@ begin
   { exact (hσ.min_const j).measurable_of_le (λ _, min_le_right _ _), },
 end
 
+lemma measurable_set_stopping_time_le (hτ : is_stopping_time 𝒢 τ) (hσ : is_stopping_time 𝒢 σ) :
+  measurable_set[hσ.measurable_space] {x | τ x ≤ σ x} :=
+begin
+  suffices : measurable_set[(hτ.min hσ).measurable_space] {x : α | τ x ≤ σ x},
+      by { rw is_stopping_time.measurable_set_min_iff hτ hσ at this, exact this.2, },
+  rw [← set.univ_inter {x : α | τ x ≤ σ x}, ← measurable_set_inter_le_iff' hτ hσ, set.univ_inter],
+  exact measurable_set_le_stopping_time hτ hσ,
+end
+
 lemma measurable_set_eq_fun_of_encodable {m : measurable_space α} {E} [measurable_space E]
   [encodable E] [measurable_singleton_class E] {f g : α → E}
   (hf : measurable f) (hg : measurable g) :
@@ -255,6 +264,85 @@ begin
   { exact is_stopping_time.measurable_space_mono _ _ hσ_le_τ, },
   { exact hτ.measurable_space_le, },
   { apply_instance, },
+end
+
+lemma condexp_of_ae_strongly_measurable' {α} {m m0 : measurable_space α} {μ : measure α}
+  (hm : m ≤ m0) [hμm : sigma_finite (μ.trim hm)]
+  {f : α → E} (hf : ae_strongly_measurable' m f μ) (hfi : integrable f μ) :
+  μ[f|m] =ᵐ[μ] f :=
+begin
+  refine (condexp_congr_ae hf.ae_eq_mk).trans _,
+  rw condexp_of_strongly_measurable hm hf.strongly_measurable_mk,
+  { exact hf.ae_eq_mk.symm, },
+  { exact (integrable_congr hf.ae_eq_mk).mp hfi, },
+  { apply_instance, },
+end
+
+lemma aux {f : ℕ → α → E} [measurable_space E] [borel_space E] [second_countable_topology E]
+  (h : martingale f 𝒢 μ) (hf_prog : prog_measurable 𝒢 f)
+  (hτ : is_stopping_time 𝒢 τ) (hσ : is_stopping_time 𝒢 σ)
+  [sigma_finite (μ.trim hσ.measurable_space_le)] {n : ℕ} (hτ_le : ∀ x, τ x ≤ n) :
+  μ[stopped_value f τ|hσ.measurable_space] =ᵐ[μ.restrict {x : α | τ x ≤ σ x}] stopped_value f τ :=
+begin
+  rw ae_eq_restrict_iff_indicator_ae_eq
+    (hτ.measurable_space_le _ (measurable_set_le_stopping_time hτ hσ)),
+  swap, apply_instance,
+  refine (condexp_indicator _ _).symm.trans _,
+  { exact integrable_stopped_value hτ h.integrable hτ_le, },
+  { exact measurable_set_stopping_time_le hτ hσ, },
+  refine condexp_of_ae_strongly_measurable' hσ.measurable_space_le _ _,
+  { refine strongly_measurable.ae_strongly_measurable' _,
+    refine strongly_measurable.strongly_measurable_todo
+    (measurable_set_le_stopping_time hτ hσ) _ _ _,
+    { intros t ht,
+      rw set.inter_comm _ t at ht ⊢,
+      rw [measurable_set_inter_le_iff', is_stopping_time.measurable_set_min_iff hτ hσ] at ht,
+      exact ht.2, },
+    { refine strongly_measurable.indicator _ (measurable_set_le_stopping_time hτ hσ),
+      refine measurable.strongly_measurable _,
+      exact measurable_stopped_value hf_prog hτ, },
+    { intros x hx,
+      simp only [hx, set.indicator_of_not_mem, not_false_iff], }, },
+  { refine (integrable_stopped_value hτ h.integrable hτ_le).indicator _,
+    exact hτ.measurable_space_le _ (measurable_set_le_stopping_time hτ hσ), },
+end
+
+/-- **Optional Sampling** -/
+lemma martingale.stopped_value_min_eq
+  [measurable_space E] [borel_space E] [second_countable_topology E]
+  [sigma_finite_filtration μ 𝒢] {f : ℕ → α → E} (h : martingale f 𝒢 μ)
+  (hτ : is_stopping_time 𝒢 τ) (hσ : is_stopping_time 𝒢 σ) {n : ℕ}
+  (hτ_le : ∀ x, τ x ≤ n)
+  [sigma_finite (μ.trim hτ.measurable_space_le)] [sigma_finite (μ.trim hσ.measurable_space_le)]
+  [sigma_finite (μ.trim (hσ.min hτ).measurable_space_le)]
+  [sigma_finite (μ.trim (hτ.min hσ).measurable_space_le)] :
+  stopped_value f (λ x, min (σ x) (τ x)) =ᵐ[μ] μ[stopped_value f τ | hσ.measurable_space] :=
+begin
+  refine (h.stopped_value_eq_of_le hτ (hσ.min hτ) (λ x, min_le_right _ _) hτ_le).trans _,
+  refine ae_of_ae_restrict_of_ae_restrict_compl {x | σ x ≤ τ x} _ _,
+  { refine (condexp_indicator_stopping_time_le hσ hτ _).symm,
+    exact integrable_stopped_value hτ h.integrable hτ_le, },
+  { suffices : μ[stopped_value f τ|(hσ.min hτ).measurable_space]
+      =ᵐ[μ.restrict {x | τ x ≤ σ x}] μ[stopped_value f τ|hσ.measurable_space],
+    { rw ae_restrict_iff' (hσ.measurable_space_le _ (measurable_set_le_stopping_time hσ hτ).compl),
+      rw [filter.eventually_eq, ae_restrict_iff'] at this,
+      swap, { exact hτ.measurable_space_le _ (measurable_set_le_stopping_time hτ hσ), },
+      filter_upwards [this] with x hx hx_mem,
+      simp only [set.mem_compl_eq, set.mem_set_of_eq, not_le] at hx_mem,
+      exact hx hx_mem.le, },
+    refine filter.eventually_eq.trans _ ((condexp_indicator_stopping_time_le hτ hσ _).symm.trans _),
+    { exact stopped_value f τ, },
+    { suffices : (hτ.min hσ).measurable_space = (hσ.min hτ).measurable_space,
+        by rw this,
+      rw [is_stopping_time.measurable_space_min, is_stopping_time.measurable_space_min, inf_comm] },
+    { exact integrable_stopped_value hτ h.integrable hτ_le, },
+    { have h1 : μ[stopped_value f τ|hτ.measurable_space] = stopped_value f τ,
+      { refine condexp_of_strongly_measurable hτ.measurable_space_le _ _,
+        { refine measurable.strongly_measurable _,
+          exact measurable_stopped_value h.adapted.prog_measurable_of_nat hτ, },
+        { exact integrable_stopped_value hτ h.integrable hτ_le, }, },
+      rw h1,
+      exact (aux h h.adapted.prog_measurable_of_nat hτ hσ hτ_le).symm, }, },
 end
 
 end stopping
