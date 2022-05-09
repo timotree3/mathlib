@@ -1288,15 +1288,45 @@ by rw [map_at_top_eq, map_at_top_eq];
 from (le_infi $ assume b, let ⟨v, hv⟩ := h_eq b in infi_le_of_le v $
   by simp [set.image_subset_iff]; exact hv)
 
-lemma has_antitone_basis.with_rel {f : filter α} {s : ℕ → set α} (hs : f.has_antitone_basis s)
-  {r : ℕ → ℕ → Prop} (hr : ∀ n, ∀ᵐ 
+lemma has_antitone_basis.eventually_subset [preorder ι] {l : filter α}
+  {s : ι → set α} (hl : l.has_antitone_basis s) {t : set α} (ht : t ∈ l) :
+  ∀ᶠ i in at_top, s i ⊆ t :=
+let ⟨i, _, hi⟩ := hl.to_has_basis.mem_iff.1 ht
+in (eventually_ge_at_top i).mono $ λ j hj, (hl.antitone hj).trans hi
 
-
-lemma has_antitone_basis.tendsto [semilattice_sup ι] [nonempty ι] {l : filter α}
+protected lemma has_antitone_basis.tendsto [preorder ι] {l : filter α}
   {s : ι → set α} (hl : l.has_antitone_basis s) {φ : ι → α}
   (h : ∀ i : ι, φ i ∈ s i) : tendsto φ at_top l  :=
-(at_top_basis.tendsto_iff hl.to_has_basis).2 $ assume i hi,
-  ⟨i, trivial, λ j hij, hl.antitone hij (h _)⟩
+λ t ht, mem_map.2 $ (hl.eventually_subset ht).mono $ λ i hi, hi (h i)
+
+lemma has_antitone_basis.comp_mono [semilattice_sup ι] [nonempty ι] [preorder ι'] {l : filter α}
+  {s : ι' → set α} (hs : l.has_antitone_basis s)
+  {φ : ι → ι'} (φ_mono : monotone φ) (hφ : tendsto φ at_top at_top) :
+  l.has_antitone_basis (s ∘ φ) :=
+⟨hs.to_has_basis.to_has_basis
+  (λ n hn, (hφ.eventually (eventually_ge_at_top n)).exists.imp $ λ m hm, ⟨trivial, hs.antitone hm⟩)
+  (λ n hn, ⟨φ n, trivial, subset.rfl⟩), hs.antitone.comp_monotone φ_mono⟩
+
+lemma has_antitone_basis.comp_strict_mono {l : filter α} {s : ℕ → set α}
+  (hs : l.has_antitone_basis s) {φ : ℕ → ℕ} (hφ : strict_mono φ) :
+  l.has_antitone_basis (s ∘ φ) :=
+hs.comp_mono hφ.monotone hφ.tendsto_at_top
+
+/-- Given an antitone basis `s : ℕ → set α` of a filter, extract an antitone subbasis `s ∘ φ`,
+`φ : ℕ → ℕ`, such that `m < n` implies `r (φ m) (φ n)`. -/
+lemma has_antitone_basis.subbasis_with_rel {f : filter α} {s : ℕ → set α}
+  (hs : f.has_antitone_basis s) {r : ℕ → ℕ → Prop} (hr : ∀ m, ∀ᶠ n in at_top, r m n) :
+  ∃ φ : ℕ → ℕ, strict_mono φ ∧ (∀ ⦃m n⦄, m < n → r (φ m) (φ n)) ∧ f.has_antitone_basis (s ∘ φ) :=
+begin
+  suffices : ∃ φ : ℕ → ℕ, strict_mono φ ∧ ∀ m n, m < n → r (φ m) (φ n),
+  { rcases this with ⟨φ, hφ, hrφ⟩,
+    exact ⟨φ, hφ, hrφ, hs.comp_strict_mono hφ⟩ },
+  have : ∀ t : set ℕ, t.finite → ∀ᶠ n in at_top, ∀ m ∈ t, m < n ∧ r m n,
+    from λ t ht, (eventually_all_finite ht).2 (λ m hm, (eventually_gt_at_top m).and (hr _)),
+  rcases seq_of_forall_finite_exists (λ t ht, (this t ht).exists) with ⟨φ, hφ⟩,
+  simp only [ball_image_iff, forall_and_distrib, mem_Iio] at hφ,
+  exact ⟨φ, forall_swap.2 hφ.1, forall_swap.2 hφ.2⟩
+end
 
 /-- If `f` is a nontrivial countably generated filter, then there exists a sequence that converges
 to `f`. -/
@@ -1304,7 +1334,7 @@ lemma exists_seq_tendsto (f : filter α) [is_countably_generated f] [ne_bot f] :
   ∃ x : ℕ → α, tendsto x at_top f :=
 begin
   obtain ⟨B, h⟩ := f.exists_antitone_basis,
-  have : ∀ n, (B n).nonempty, from λ n, nonempty_of_mem (h.mem _), choose x hx,
+  choose x hx using λ n, filter.nonempty_of_mem (h.mem n),
   exact ⟨x, h.tendsto hx⟩
 end
 

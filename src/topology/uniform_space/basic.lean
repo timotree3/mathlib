@@ -3,7 +3,7 @@ Copyright (c) 2017 Johannes Hölzl. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Johannes Hölzl, Mario Carneiro, Patrick Massot
 -/
-import order.filter.lift
+import order.filter.small_sets
 import topology.subset_properties
 /-!
 # Uniform spaces
@@ -178,8 +178,12 @@ sep_subset _ _
 lemma symmetrize_mono {V W: set (α × α)} (h : V ⊆ W) : symmetrize_rel V ⊆ symmetrize_rel W :=
 inter_subset_inter h $ preimage_mono h
 
+lemma symmetric_rel.mk_mem_comm {V : set (α × α)} (hV : symmetric_rel V) {x y : α} :
+  (x, y) ∈ V ↔ (y, x) ∈ V :=
+set.ext_iff.1 hV (y, x)
+
 lemma symmetric_rel_inter {U V : set (α × α)} (hU : symmetric_rel U) (hV : symmetric_rel V) :
-symmetric_rel (U ∩ V) :=
+  symmetric_rel (U ∩ V) :=
 begin
   unfold symmetric_rel at *,
   rw [preimage_inter, hU, hV],
@@ -339,6 +343,20 @@ lemma comp_mem_uniformity_sets {s : set (α × α)} (hs : s ∈ 𝓤 α) :
 have s ∈ (𝓤 α).lift' (λt:set (α×α), t ○ t),
   from comp_le_uniformity hs,
 (mem_lift'_sets $ monotone_comp_rel monotone_id monotone_id).mp this
+
+lemma eventually_uniformity_iterate_comp_subset {s : set (α × α)} (hs : s ∈ 𝓤 α) (n : ℕ) :
+  ∀ᶠ t in (𝓤 α).small_sets, (λ U, U ○ U) ^[n] t ⊆ s :=
+begin
+  induction n with n ihn generalizing s, { simpa },
+  rcases comp_mem_uniformity_sets hs with ⟨t, htU, hts⟩,
+  refine (ihn htU).mono (λ U hU, _),
+  rw [function.iterate_succ_apply'],
+  exact (comp_rel_mono hU hU).trans hts
+end
+
+lemma eventually_uniformity_comp_subset {s : set (α × α)} (hs : s ∈ 𝓤 α) :
+  ∀ᶠ t in (𝓤 α).small_sets, t ○ t ⊆ s :=
+eventually_uniformity_iterate_comp_subset hs 1
 
 /-- Relation `λ f g, tendsto (λ x, (f x, g x)) l (𝓤 α)` is transitive. -/
 lemma filter.tendsto.uniformity_trans {l : filter β} {f₁ f₂ f₃ : β → α}
