@@ -162,8 +162,8 @@ end
 section condexp
 variables [normed_group E] [normed_space ℝ E] [complete_space E]
 
-lemma condexp_indicator_stopping_time_eq [encodable ι] [topological_space ι]
-  [order_topology ι] [first_countable_topology ι]
+lemma condexp_indicator_stopping_time_eq [(filter.at_top : filter ι).is_countably_generated]
+  [topological_space ι] [order_topology ι] [first_countable_topology ι]
   [sigma_finite_filtration μ ℱ] {f : α → E}
   (hτ : is_stopping_time ℱ τ) [sigma_finite (μ.trim hτ.measurable_space_le)]
   {i : ι} (hf : integrable f μ) :
@@ -174,7 +174,8 @@ begin
   rw [set.inter_comm _ t, is_stopping_time.measurable_set_inter_eq_iff],
 end
 
-lemma condexp_indicator_stopping_time_le [encodable ι] [topological_space ι] [measurable_space ι]
+lemma condexp_indicator_stopping_time_le [(filter.at_top : filter ι).is_countably_generated]
+  [topological_space ι] [measurable_space ι]
   [order_topology ι] [second_countable_topology ι] [borel_space ι] {f : α → E}
   (hτ : is_stopping_time ℱ τ) (hσ : is_stopping_time ℱ σ)
   [sigma_finite (μ.trim hτ.measurable_space_le)]
@@ -187,6 +188,19 @@ begin
   rw [set.inter_comm _ t, measurable_set_inter_le_iff'],
 end
 
+lemma condexp_indicator_stopping_time_le_const [(filter.at_top : filter ι).is_countably_generated]
+  {f : α → E}
+  (hτ : is_stopping_time ℱ τ) [sigma_finite (μ.trim hτ.measurable_space_le)]
+  [∀ i, sigma_finite (μ.trim (hτ.min_const i).measurable_space_le)]
+  {i : ι} (hf : integrable f μ) :
+  μ[f | hτ.measurable_space]
+    =ᵐ[μ.restrict {x | τ x ≤ i}] μ[f | (hτ.min_const i).measurable_space] :=
+begin
+  refine condexp_indicator_eq_todo hτ.measurable_space_le (hτ.min_const i).measurable_space_le hf
+    (hτ.measurable_set_le' i) (λ t, _),
+  rw [set.inter_comm _ t, measurable_set_inter_le_iff],
+end
+
 end condexp
 
 end not_nat
@@ -195,18 +209,6 @@ section nat
 
 variables {E : Type*} {𝒢 : filtration ℕ m} {τ σ : α → ℕ}
   [normed_group E] [normed_space ℝ E] [complete_space E]
-
-lemma condexp_indicator_stopping_time_le_const {f : α → E}
-  (hτ : is_stopping_time 𝒢 τ) [sigma_finite (μ.trim hτ.measurable_space_le)]
-  [∀ i, sigma_finite (μ.trim (hτ.min_const i).measurable_space_le)]
-  {i : ℕ} (hf : integrable f μ) :
-  μ[f | hτ.measurable_space]
-    =ᵐ[μ.restrict {x | τ x ≤ i}] μ[f | (hτ.min_const i).measurable_space] :=
-begin
-  refine condexp_indicator_eq_todo hτ.measurable_space_le (hτ.min_const i).measurable_space_le hf
-    (hτ.measurable_set_le' i) (λ t, _),
-  rw [set.inter_comm _ t, measurable_set_inter_le_iff],
-end
 
 lemma condexp_indicator_todo [sigma_finite_filtration μ 𝒢] {f : ℕ → α → E} (h : martingale f 𝒢 μ)
   (hτ : is_stopping_time 𝒢 τ) [sigma_finite (μ.trim hτ.measurable_space_le)]

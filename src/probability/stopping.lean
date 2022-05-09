@@ -641,10 +641,35 @@ begin
     exact le_trans (hle _) hle' },
 end
 
-lemma measurable_space_le [is_countably_generated (at_top : filter ι)] [(at_top : filter ι).ne_bot]
+lemma measurable_space_le' [is_countably_generated (at_top : filter ι)] [(at_top : filter ι).ne_bot]
   (hτ : is_stopping_time f τ) :
   hτ.measurable_space ≤ m :=
 begin
+  intros s hs,
+  change ∀ i, measurable_set[f i] (s ∩ {x | τ x ≤ i}) at hs,
+  obtain ⟨seq : ℕ → ι, h_seq_tendsto⟩ := at_top.exists_seq_tendsto,
+  rw (_ : s = ⋃ n, s ∩ {x | τ x ≤ seq n}),
+  { exact measurable_set.Union (λ i, f.le (seq i) _ (hs (seq i))), },
+  { ext x, split; rw set.mem_Union,
+    { intros hx,
+      suffices : ∃ i, τ x ≤ seq i, from ⟨this.some, hx, this.some_spec⟩,
+      rw tendsto_at_top at h_seq_tendsto,
+      exact (h_seq_tendsto (τ x)).exists, },
+    { rintro ⟨_, hx, _⟩,
+      exact hx }, },
+  all_goals { apply_instance, },
+end
+
+lemma measurable_space_le {ι} [semilattice_sup ι] {f : filtration ι m} {τ : α → ι}
+  [is_countably_generated (at_top : filter ι)] (hτ : is_stopping_time f τ) :
+  hτ.measurable_space ≤ m :=
+begin
+  casesI is_empty_or_nonempty ι,
+  { haveI : is_empty α := ⟨λ x, is_empty.false (τ x)⟩,
+    intros s hsτ,
+    suffices hs : s = ∅, by { rw hs, exact measurable_set.empty, },
+    haveI : unique (set α) := set.unique_empty,
+    rw [unique.eq_default s, unique.eq_default ∅], },
   intros s hs,
   change ∀ i, measurable_set[f i] (s ∩ {x | τ x ≤ i}) at hs,
   obtain ⟨seq : ℕ → ι, h_seq_tendsto⟩ := at_top.exists_seq_tendsto,
