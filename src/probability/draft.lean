@@ -92,20 +92,16 @@ begin
   exact measurable_set_le_stopping_time hτ hσ,
 end
 
-variables {E : Type*}
+lemma is_stopping_time.measurable_space_min_const (hτ : is_stopping_time ℱ τ) {i : ι} :
+  (hτ.min_const i).measurable_space = hτ.measurable_space ⊓ ℱ i :=
+by rw [hτ.measurable_space_min (is_stopping_time_const _ i),
+  is_stopping_time.measurable_space_const]
 
-lemma measurable_set_eq_fun_of_encodable {m : measurable_space α} [measurable_space E]
-  [encodable E] [measurable_singleton_class E] {f g : α → E}
-  (hf : measurable f) (hg : measurable g) :
-  measurable_set {x | f x = g x} :=
-begin
-  have : {x | f x = g x} = ⋃ j, {x | f x = j} ∩ {x | g x = j},
-  { ext1 x, simp only [set.mem_set_of_eq, set.mem_Union, set.mem_inter_eq, exists_eq_right'], },
-  rw this,
-  refine measurable_set.Union (λ j, measurable_set.inter _ _),
-  { exact hf (measurable_set_singleton j), },
-  { exact hg (measurable_set_singleton j), },
-end
+lemma is_stopping_time.measurable_set_min_const_iff (hτ : is_stopping_time ℱ τ) (s : set α)
+  {i : ι} :
+  measurable_set[(hτ.min_const i).measurable_space] s
+    ↔ measurable_set[hτ.measurable_space] s ∧ measurable_set[ℱ i] s :=
+by rw [is_stopping_time.measurable_space_min_const, measurable_space.measurable_set_inf]
 
 lemma measurable_set_eq_stopping_time [add_group ι]
   [topological_space ι] [measurable_space ι] [borel_space ι] [order_topology ι]
@@ -133,6 +129,19 @@ begin
   { exact (hσ.min_const j).measurable_of_le (λ _, min_le_right _ _), },
 end
 
+lemma measurable_set_eq_fun_of_encodable {E : Type*} {m : measurable_space α} [measurable_space E]
+  [encodable E] [measurable_singleton_class E] {f g : α → E}
+  (hf : measurable f) (hg : measurable g) :
+  measurable_set {x | f x = g x} :=
+begin
+  have : {x | f x = g x} = ⋃ j, {x | f x = j} ∩ {x | g x = j},
+  { ext1 x, simp only [set.mem_set_of_eq, set.mem_Union, set.mem_inter_eq, exists_eq_right'], },
+  rw this,
+  refine measurable_set.Union (λ j, measurable_set.inter _ _),
+  { exact hf (measurable_set_singleton j), },
+  { exact hg (measurable_set_singleton j), },
+end
+
 lemma measurable_set_eq_stopping_time_of_encodable [encodable ι]
   [topological_space ι] [measurable_space ι] [borel_space ι] [order_topology ι]
   [measurable_singleton_class ι] [second_countable_topology ι]
@@ -157,6 +166,42 @@ begin
   apply measurable_set_eq_fun_of_encodable,
   { exact (hτ.min_const j).measurable_of_le (λ _, min_le_right _ _), },
   { exact (hσ.min_const j).measurable_of_le (λ _, min_le_right _ _), },
+end
+
+variables {E : Type*}
+
+lemma strongly_measurable_stopped_value_of_le [topological_space E] {f : ι → α → E}
+  [topological_space ι] [measurable_space ι] [borel_space ι] [order_topology ι]
+  [second_countable_topology ι]
+  (h : prog_measurable ℱ f) (hτ : is_stopping_time ℱ τ) {n : ι} (hτ_le : ∀ x, τ x ≤ n) :
+  strongly_measurable[ℱ n] (stopped_value f τ) :=
+begin
+  have : stopped_value f τ = (λ (p : set.Iic n × α), f ↑(p.fst) p.snd) ∘ (λ x, (⟨τ x, hτ_le x⟩, x)),
+  { ext1 x, simp only [stopped_value, function.comp_app, subtype.coe_mk], },
+  rw this,
+  refine strongly_measurable.comp_measurable (h n) _,
+  exact (hτ.measurable_of_le hτ_le).subtype_mk.prod_mk measurable_id,
+end
+
+lemma measurable_stopped_value {f : ι → α → E}
+  [topological_space ι] [measurable_space ι] [borel_space ι] [order_topology ι]
+  [second_countable_topology ι]
+  [topological_space E] [metrizable_space E] [measurable_space E] [borel_space E]
+  (hf_prog : prog_measurable ℱ f) (hτ : is_stopping_time ℱ τ) :
+  measurable[hτ.measurable_space] (stopped_value f τ) :=
+begin
+  have h_str_meas : ∀ i, strongly_measurable[ℱ i] (stopped_value f (λ x, min (τ x) i)),
+    from λ i, strongly_measurable_stopped_value_of_le hf_prog (hτ.min_const i)
+      (λ _, min_le_right _ _),
+  intros t ht i,
+  suffices : stopped_value f τ ⁻¹' t ∩ {x : α | τ x ≤ i}
+      = stopped_value f (λ x, min (τ x) i) ⁻¹' t ∩ {x : α | τ x ≤ i},
+    by { rw this, exact ((h_str_meas i).measurable ht).inter (hτ.measurable_set_le i), },
+  ext1 x,
+  simp only [stopped_value, set.mem_inter_eq, set.mem_preimage, set.mem_set_of_eq,
+    and.congr_left_iff],
+  intro h,
+  rw min_eq_left h,
 end
 
 section condexp
@@ -201,6 +246,21 @@ begin
   rw [set.inter_comm _ t, measurable_set_inter_le_iff],
 end
 
+lemma condexp_indicator_todo [(filter.at_top : filter ι).is_countably_generated]
+  [topological_space ι] [order_topology ι] [first_countable_topology ι]
+  [sigma_finite_filtration μ ℱ] {f : ι → α → E} (h : martingale f ℱ μ)
+  (hτ : is_stopping_time ℱ τ) [sigma_finite (μ.trim hτ.measurable_space_le)]
+  {i n : ι} (hin : i ≤ n) :
+  f i =ᵐ[μ.restrict {x | τ x = i}] μ[f n | hτ.measurable_space] :=
+begin
+  have hfi_eq_restrict : f i =ᵐ[μ.restrict {x | τ x = i}] μ[f n | ℱ i],
+    from ae_restrict_of_ae (h.condexp_ae_eq hin).symm,
+  refine hfi_eq_restrict.trans _,
+  refine condexp_indicator_eq_todo (ℱ.le i) hτ.measurable_space_le (h.integrable n)
+    (hτ.measurable_set_eq i) (λ t, _),
+  rw [set.inter_comm _ t, is_stopping_time.measurable_set_inter_eq_iff],
+end
+
 end condexp
 
 end not_nat
@@ -209,64 +269,6 @@ section nat
 
 variables {E : Type*} {𝒢 : filtration ℕ m} {τ σ : α → ℕ}
   [normed_group E] [normed_space ℝ E] [complete_space E]
-
-lemma condexp_indicator_todo [sigma_finite_filtration μ 𝒢] {f : ℕ → α → E} (h : martingale f 𝒢 μ)
-  (hτ : is_stopping_time 𝒢 τ) [sigma_finite (μ.trim hτ.measurable_space_le)]
-  {i n : ℕ} (hin : i ≤ n) :
-  f i =ᵐ[μ.restrict {x | τ x = i}] μ[f n | hτ.measurable_space] :=
-begin
-  have hfi_eq_restrict : f i =ᵐ[μ.restrict {x | τ x = i}] μ[f n | 𝒢 i],
-    from ae_restrict_of_ae (h.condexp_ae_eq hin).symm,
-  refine hfi_eq_restrict.trans _,
-  refine condexp_indicator_eq_todo (𝒢.le i) hτ.measurable_space_le (h.integrable n)
-    (hτ.measurable_set_eq i) (λ t, _),
-  rw [set.inter_comm _ t, is_stopping_time.measurable_set_inter_eq_iff],
-end
-
-lemma is_stopping_time.measurable_space_min_const (hτ : is_stopping_time 𝒢 τ) {i : ℕ} :
-  (hτ.min_const i).measurable_space = hτ.measurable_space ⊓ 𝒢 i :=
-by rw [hτ.measurable_space_min (is_stopping_time_const _ i),
-  is_stopping_time.measurable_space_const]
-
-lemma is_stopping_time.measurable_set_min_const_iff (hτ : is_stopping_time 𝒢 τ) (s : set α)
-  {i : ℕ} :
-  measurable_set[(hτ.min_const i).measurable_space] s
-    ↔ measurable_set[hτ.measurable_space] s ∧ measurable_set[𝒢 i] s :=
-by rw [is_stopping_time.measurable_space_min_const, measurable_space.measurable_set_inf]
-
-lemma strongly_measurable_stopped_value_of_le {E} [topological_space E] {f : ℕ → α → E}
-  (h : prog_measurable 𝒢 f) (hτ : is_stopping_time 𝒢 τ) {n : ℕ} (hτ_le : ∀ x, τ x ≤ n) :
-  strongly_measurable[𝒢 n] (stopped_value f τ) :=
-begin
-  have : stopped_value f τ = (λ (p : set.Iic n × α), f ↑(p.fst) p.snd) ∘ (λ x, (⟨τ x, hτ_le x⟩, x)),
-  { ext1 x, simp only [stopped_value, function.comp_app, subtype.coe_mk], },
-  rw this,
-  refine strongly_measurable.comp_measurable (h n) _,
-  exact (hτ.measurable_of_le hτ_le).subtype_mk.prod_mk measurable_id,
-end
-
-lemma measurable_stopped_value {E} {f : ℕ → α → E} [topological_space E] [metrizable_space E]
-  [measurable_space E] [borel_space E]
-  (hf_prog : prog_measurable 𝒢 f) (hτ : is_stopping_time 𝒢 τ) :
-  measurable[hτ.measurable_space] (stopped_value f τ) :=
-begin
-  have h_str_meas : ∀ i, strongly_measurable[𝒢 i] (stopped_value f (λ x, min (τ x) i)),
-    from λ i, strongly_measurable_stopped_value_of_le hf_prog (hτ.min_const i)
-      (λ _, min_le_right _ _),
-  intros t ht,
-  rw hτ.measurable_set,
-  intros i,
-  have : stopped_value f τ ⁻¹' t ∩ {x : α | τ x ≤ i}
-    = stopped_value f (λ x, min (τ x) i) ⁻¹' t ∩ {x : α | τ x ≤ i},
-  { ext1 x,
-    simp only [stopped_value, set.mem_inter_eq, set.mem_preimage, set.mem_set_of_eq,
-      and.congr_left_iff],
-    intro h,
-    rw min_eq_left h, },
-  rw this,
-  refine measurable_set.inter _ (hτ.measurable_set_le i),
-  exact (h_str_meas i).measurable ht,
-end
 
 lemma martingale.stopped_value_eq_of_le_const [sigma_finite_filtration μ 𝒢] {f : ℕ → α → E}
   (h : martingale f 𝒢 μ) (hτ : is_stopping_time 𝒢 τ) {n : ℕ}
@@ -321,11 +323,9 @@ lemma condexp_of_ae_strongly_measurable' {α} {m m0 : measurable_space α} {μ :
   {f : α → E} (hf : ae_strongly_measurable' m f μ) (hfi : integrable f μ) :
   μ[f|m] =ᵐ[μ] f :=
 begin
-  refine (condexp_congr_ae hf.ae_eq_mk).trans _,
-  rw condexp_of_strongly_measurable hm hf.strongly_measurable_mk,
-  { exact hf.ae_eq_mk.symm, },
-  { exact (integrable_congr hf.ae_eq_mk).mp hfi, },
-  { apply_instance, },
+  refine ((condexp_congr_ae hf.ae_eq_mk).trans _).trans hf.ae_eq_mk.symm,
+  rw condexp_of_strongly_measurable hm hf.strongly_measurable_mk
+    ((integrable_congr hf.ae_eq_mk).mp hfi),
 end
 
 lemma aux {f : ℕ → α → E} [measurable_space E] [borel_space E] [second_countable_topology E]
