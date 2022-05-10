@@ -168,26 +168,26 @@ lemma aux {f : ℕ → α → E} [measurable_space E] [borel_space E] [second_co
   μ[stopped_value f τ|hσ.measurable_space] =ᵐ[μ.restrict {x : α | τ x ≤ σ x}] stopped_value f τ :=
 begin
   rw ae_eq_restrict_iff_indicator_ae_eq
-    (hτ.measurable_space_le _ (measurable_set_le_stopping_time hτ hσ)),
+    (hτ.measurable_space_le _ (hτ.measurable_set_le_stopping_time hσ)),
   swap, apply_instance,
   refine (condexp_indicator _ _).symm.trans _,
   { exact integrable_stopped_value hτ h.integrable hτ_le, },
-  { exact measurable_set_stopping_time_le hτ hσ, },
+  { exact hτ.measurable_set_stopping_time_le hσ, },
   refine condexp_of_ae_strongly_measurable' hσ.measurable_space_le _ _,
   { refine strongly_measurable.ae_strongly_measurable' _,
     refine strongly_measurable.strongly_measurable_of_measurable_space_le_on
-      (measurable_set_le_stopping_time hτ hσ) _ _ _,
+      (hτ.measurable_set_le_stopping_time hσ) _ _ _,
     { intros t ht,
       rw set.inter_comm _ t at ht ⊢,
-      rw [measurable_set_inter_le_iff', is_stopping_time.measurable_set_min_iff hτ hσ] at ht,
+      rw [hτ.measurable_set_inter_le_iff, is_stopping_time.measurable_set_min_iff hτ hσ] at ht,
       exact ht.2, },
-    { refine strongly_measurable.indicator _ (measurable_set_le_stopping_time hτ hσ),
+    { refine strongly_measurable.indicator _ (hτ.measurable_set_le_stopping_time hσ),
       refine measurable.strongly_measurable _,
       exact measurable_stopped_value hf_prog hτ, },
     { intros x hx,
       simp only [hx, set.indicator_of_not_mem, not_false_iff], }, },
   { refine (integrable_stopped_value hτ h.integrable hτ_le).indicator _,
-    exact hτ.measurable_space_le _ (measurable_set_le_stopping_time hτ hσ), },
+    exact hτ.measurable_space_le _ (hτ.measurable_set_le_stopping_time hσ), },
 end
 
 /-- **Optional Sampling** -/
@@ -210,9 +210,9 @@ begin
     exact integrable_stopped_value hτ h.integrable hτ_le, },
   { suffices : μ[stopped_value f τ|(hσ.min hτ).measurable_space]
       =ᵐ[μ.restrict {x | τ x ≤ σ x}] μ[stopped_value f τ|hσ.measurable_space],
-    { rw ae_restrict_iff' (hσ.measurable_space_le _ (measurable_set_le_stopping_time hσ hτ).compl),
+    { rw ae_restrict_iff' (hσ.measurable_space_le _ (hσ.measurable_set_le_stopping_time hτ).compl),
       rw [filter.eventually_eq, ae_restrict_iff'] at this,
-      swap, { exact hτ.measurable_space_le _ (measurable_set_le_stopping_time hτ hσ), },
+      swap, { exact hτ.measurable_space_le _ (hτ.measurable_set_le_stopping_time hσ), },
       filter_upwards [this] with x hx hx_mem,
       simp only [set.mem_compl_eq, set.mem_set_of_eq, not_le] at hx_mem,
       exact hx hx_mem.le, },
