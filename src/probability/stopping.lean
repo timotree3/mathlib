@@ -1025,19 +1025,33 @@ lemma adapted.strongly_measurable_stopped_process_of_nat [topological_space β]
   strongly_measurable (stopped_process u τ n) :=
 hu.prog_measurable_of_nat.strongly_measurable_stopped_process hτ n
 
-lemma stopped_value_eq {N : ℕ} (hbdd : ∀ x, τ x ≤ N) :
-  stopped_value u τ =
-  λ x, (∑ i in finset.range (N + 1), set.indicator {x | τ x = i} (u i)) x :=
+lemma stopped_value_apply_eq_of_mem_finset {τ : α → ι} {u : ι → α → β} {s : finset ι}
+  (hbdd : ∀ x, τ x ∈ s) (x : α) :
+  stopped_value u τ x = ∑ i in s, set.indicator {x | τ x = i} (u i) x :=
 begin
-  ext y,
-  rw [stopped_value, finset.sum_apply, finset.sum_eq_single (τ y)],
+  rw [stopped_value, finset.sum_eq_single (τ x)],
   { rw set.indicator_of_mem,
     exact rfl },
   { exact λ i hi hneq, set.indicator_of_not_mem hneq.symm _ },
-  { intro hy,
-    rw set.indicator_of_not_mem,
-    exact λ _, hy (finset.mem_range.2 $ lt_of_le_of_lt (hbdd _) (nat.lt_succ_self _)) }
+  { exact λ hy, set.indicator_of_not_mem (λ _, hy (hbdd x)) _, }
 end
+
+lemma stopped_value_eq_of_mem_finset {τ : α → ι} {u : ι → α → β} {s : finset ι}
+  (hbdd : ∀ x, τ x ∈ s) :
+  stopped_value u τ = λ x, ∑ i in s, set.indicator {x | τ x = i} (u i) x :=
+funext (λ x, stopped_value_apply_eq_of_mem_finset hbdd x)
+
+lemma stopped_value_apply_eq {N : ℕ} (hbdd : ∀ x, τ x ≤ N) (x : α) :
+  stopped_value u τ x = ∑ i in finset.range (N + 1), set.indicator {x | τ x = i} (u i) x :=
+begin
+  refine stopped_value_apply_eq_of_mem_finset (λ x, _) x,
+  rw finset.mem_range,
+  exact (hbdd x).trans_lt (nat.lt_succ_self N),
+end
+
+lemma stopped_value_eq {N : ℕ} (hbdd : ∀ x, τ x ≤ N) :
+  stopped_value u τ = λ x, ∑ i in finset.range (N + 1), set.indicator {x | τ x = i} (u i) x :=
+funext (λ x, stopped_value_apply_eq hbdd x)
 
 lemma stopped_process_eq (n : ℕ) :
   stopped_process u τ n =
@@ -1090,11 +1104,7 @@ lemma mem_ℒp_stopped_value (hτ : is_stopping_time f τ)
   mem_ℒp (stopped_value u τ) p μ :=
 begin
   rw stopped_value_eq hbdd,
-  suffices : mem_ℒp (λ x, ∑ (i : ℕ) in finset.range (N + 1),
-    {a : α | τ a = i}.indicator (u i) x) p μ,
-  { convert this, ext1 x, simp only [finset.sum_apply] },
-  refine mem_ℒp_finset_sum _ (λ i hi, mem_ℒp.indicator _ (hu i)),
-  exact f.le i {a : α | τ a = i} (hτ.measurable_set_eq i)
+  exact mem_ℒp_finset_sum _ (λ i hi, mem_ℒp.indicator (f.le i _ (hτ.measurable_set_eq i)) (hu i)),
 end
 
 lemma integrable_stopped_value (hτ : is_stopping_time f τ)

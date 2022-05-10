@@ -214,8 +214,8 @@ lemma condexp_indicator_stopping_time_eq [(filter.at_top : filter ι).is_countab
   {i : ι} (hf : integrable f μ) :
   μ[f | hτ.measurable_space] =ᵐ[μ.restrict {x | τ x = i}] μ[f | ℱ i] :=
 begin
-  refine condexp_indicator_eq_todo hτ.measurable_space_le (ℱ.le i) hf (hτ.measurable_set_eq' i)
-    (λ t, _),
+  refine condexp_ae_eq_restrict_of_measurable_space_eq_on
+    hτ.measurable_space_le (ℱ.le i) hf (hτ.measurable_set_eq' i) (λ t, _),
   rw [set.inter_comm _ t, is_stopping_time.measurable_set_inter_eq_iff],
 end
 
@@ -228,8 +228,8 @@ lemma condexp_indicator_stopping_time_le [(filter.at_top : filter ι).is_countab
   (hf : integrable f μ) :
   μ[f | hτ.measurable_space] =ᵐ[μ.restrict {x | τ x ≤ σ x}] μ[f | (hτ.min hσ).measurable_space] :=
 begin
-  refine condexp_indicator_eq_todo hτ.measurable_space_le (hτ.min hσ).measurable_space_le hf
-    (measurable_set_le_stopping_time hτ hσ) (λ t, _),
+  refine condexp_ae_eq_restrict_of_measurable_space_eq_on hτ.measurable_space_le
+    (hτ.min hσ).measurable_space_le hf (measurable_set_le_stopping_time hτ hσ) (λ t, _),
   rw [set.inter_comm _ t, measurable_set_inter_le_iff'],
 end
 
@@ -241,8 +241,8 @@ lemma condexp_indicator_stopping_time_le_const [(filter.at_top : filter ι).is_c
   μ[f | hτ.measurable_space]
     =ᵐ[μ.restrict {x | τ x ≤ i}] μ[f | (hτ.min_const i).measurable_space] :=
 begin
-  refine condexp_indicator_eq_todo hτ.measurable_space_le (hτ.min_const i).measurable_space_le hf
-    (hτ.measurable_set_le' i) (λ t, _),
+  refine condexp_ae_eq_restrict_of_measurable_space_eq_on hτ.measurable_space_le
+    (hτ.min_const i).measurable_space_le hf (hτ.measurable_set_le' i) (λ t, _),
   rw [set.inter_comm _ t, measurable_set_inter_le_iff],
 end
 
@@ -256,8 +256,8 @@ begin
   have hfi_eq_restrict : f i =ᵐ[μ.restrict {x | τ x = i}] μ[f n | ℱ i],
     from ae_restrict_of_ae (h.condexp_ae_eq hin).symm,
   refine hfi_eq_restrict.trans _,
-  refine condexp_indicator_eq_todo (ℱ.le i) hτ.measurable_space_le (h.integrable n)
-    (hτ.measurable_set_eq i) (λ t, _),
+  refine condexp_ae_eq_restrict_of_measurable_space_eq_on (ℱ.le i) hτ.measurable_space_le
+    (h.integrable n) (hτ.measurable_set_eq i) (λ t, _),
   rw [set.inter_comm _ t, is_stopping_time.measurable_set_inter_eq_iff],
 end
 
@@ -342,8 +342,8 @@ begin
   { exact measurable_set_stopping_time_le hτ hσ, },
   refine condexp_of_ae_strongly_measurable' hσ.measurable_space_le _ _,
   { refine strongly_measurable.ae_strongly_measurable' _,
-    refine strongly_measurable.strongly_measurable_todo
-    (measurable_set_le_stopping_time hτ hσ) _ _ _,
+    refine strongly_measurable.strongly_measurable_of_measurable_space_le_on
+      (measurable_set_le_stopping_time hτ hσ) _ _ _,
     { intros t ht,
       rw set.inter_comm _ t at ht ⊢,
       rw [measurable_set_inter_le_iff', is_stopping_time.measurable_set_min_iff hτ hσ] at ht,

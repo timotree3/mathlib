@@ -116,7 +116,7 @@ begin
       by simp_rw [lintegral_const, measure.restrict_apply_univ, one_mul]
   ... = ∑ k in finset.range n, ennreal.of_real c *
     ∫⁻ x, {x : α | τ x = k}.indicator (λ _, (1 : ℝ≥0∞)) x ∂μ :
-      by { congr, ext1 k, sorry, rw lintegral_indicator _ (ℱ.le k _ (hτ_stop.measurable_set_eq k)), }
+      by { congr, ext1 k, rw lintegral_indicator _ (ℱ.le k _ (hτ_stop.measurable_set_eq k)), }
   ... = ∑ k in finset.range n,
     ∫⁻ x, {x : α | τ x = k}.indicator (λ _, ennreal.of_real c) x ∂μ : begin
       congr,
@@ -144,6 +144,7 @@ begin
     ennreal.of_real ∫ x, {x : α | τ x = k}.indicator (μ[f n | ℱ k]) x ∂μ : begin
       refine finset.sum_le_sum (λ k hk, _),
       refine ennreal.of_real_le_of_real _,
+      sorry,
       sorry,  -- use submartingale
     end
   ... = ∑ k in finset.range n,
