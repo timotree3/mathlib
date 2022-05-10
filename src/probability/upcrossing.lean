@@ -74,6 +74,17 @@ calc ennreal.of_real (∫ x, f x ∂μ) = ennreal.of_real ∫ x, ∥f x∥ ∂μ
   by { congr, ext1 x, rw [← of_real_norm_eq_coe_nnnorm, real.norm_eq_abs,
                           abs_eq_self.mpr (f_nn x)] }
 
+instance {α} [preorder α] [topological_space α] [order_topology α] :
+  topological_space (with_top α) :=
+preorder.topology (with_top α)
+
+instance {α} [preorder α] [topological_space α] [order_topology α] :
+  order_topology (with_top α) := ⟨rfl⟩
+
+instance {α} [preorder α] [topological_space α] [order_topology α] [discrete_topology α] :
+  discrete_topology (with_top α) :=
+{ eq_bot := sorry }
+
 lemma todo {f : with_top ℕ → α → ℝ} (h : submartingale f ℱ μ) (hf_nonneg : ∀ n, 0 ≤ f n)
   (c : ℝ) (n : ℕ) :
   (ennreal.of_real c) * μ {x | c < sup_norm_Iic f n x}
@@ -94,7 +105,8 @@ begin
     have : c < sup_norm_Iic f n x ↔ τ x ≤ n,
       from sup_norm_Iic_gt_iff_first_gt_before_le hf_nonneg,
     rw [set.mem_set_of_eq, this],
-    simp, },
+    simp,
+    sorry, },
   rw this,
   calc ennreal.of_real c * μ (⋃ (k : ℕ) (H : k ≤ n), {x : α | τ x = k})
       ≤ ennreal.of_real c * ∑ k in finset.range n, μ {x : α | τ x = k} : sorry
@@ -104,7 +116,7 @@ begin
       by simp_rw [lintegral_const, measure.restrict_apply_univ, one_mul]
   ... = ∑ k in finset.range n, ennreal.of_real c *
     ∫⁻ x, {x : α | τ x = k}.indicator (λ _, (1 : ℝ≥0∞)) x ∂μ :
-      by { congr, ext1 k, rw lintegral_indicator _ (ℱ.le k _ (hτ_stop.measurable_set_eq k)), }
+      by { congr, ext1 k, sorry, rw lintegral_indicator _ (ℱ.le k _ (hτ_stop.measurable_set_eq k)), }
   ... = ∑ k in finset.range n,
     ∫⁻ x, {x : α | τ x = k}.indicator (λ _, ennreal.of_real c) x ∂μ : begin
       congr,
