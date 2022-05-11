@@ -857,52 +857,46 @@ section pullback
 
 open topological_space topological_vector_bundle
 
-variables {R F E} {B' : Type*}
-variables [nondiscrete_normed_field R] [∀ x, add_comm_monoid (E x)] [∀ x, module R (E x)]
-  [normed_group F] [normed_space R F] [topological_space B] [topological_space B']
-  [topological_space (total_space E)] [∀ x, topological_space (E x)]
-
+variables {B' : Type*} (f : B' → B) (E' : B → Type*)
 
 section
 
 local attribute [reducible] pullback
 
-variables {A : Type*} {A' : Type*} {f : A' → A} {x : A'} {E' : A → Type*}
-
-instance [topological_space (E' (f x))] : topological_space ((f *ᵖ E') x) :=
+instance [∀ (x : B), topological_space (E' x)] : ∀ (x : B'), topological_space ((f *ᵖ E') x) :=
 by apply_instance
 
-instance [add_comm_monoid (E' (f x))] : add_comm_monoid ((f *ᵖ E') x) :=
+instance [∀ (x : B), add_comm_monoid (E' x)] : ∀ (x : B'), add_comm_monoid ((f *ᵖ E') x) :=
 by apply_instance
 
-instance [add_comm_monoid (E' (f x))] [module R (E' (f x))] : module R ((f *ᵖ E') x) :=
+instance [semiring R] [∀ (x : B), add_comm_monoid (E' x)] [∀ x, module R (E' x)] :
+  ∀ (x : B'), module R ((f *ᵖ E') x) :=
 by apply_instance
 
 end
 
-@[priority 90, nolint unused_arguments]
-instance pullback.total_space.topological_space {f : B' → B} :
+section
+
+variables [topological_space B'] [topological_space (total_space E)]
+
+/-- The topology on the total space of a pullback bundle is the coarsest topology for which both
+the projections to the base and the map to the original bundle are continuous. -/
+instance pullback.total_space.topological_space :
   topological_space (total_space (f *ᵖ E)) :=
-induced (pullback_total_space_embedding E f) prod.topological_space
-
-lemma inducing_pullback_total_space_embedding {f : B' → B} :
-  inducing (pullback_total_space_embedding E f) := ⟨rfl⟩
-
-lemma continuous_pullback_total_space_embedding {f : B' → B} :
-  continuous (pullback_total_space_embedding E f) :=
-inducing_pullback_total_space_embedding.continuous
+induced (proj (f *ᵖ E)) ‹topological_space B'› ⊓
+induced (pullback.lift E f) ‹topological_space (total_space E)›
 
 variables (R F)
 
-lemma pullback.continuous_total_space_mk {f : B' → B} {x : B'}
-  [∀ x, topological_space (E x)] [topological_vector_bundle R F E] :
-  continuous (total_space_mk (f *ᵖ E) x) :=
+lemma pullback.continuous_total_space_mk {f : B' → B} {x : B'} [nondiscrete_normed_field R]
+  [normed_group F] [normed_space R F] [topological_space B] [topological_space (total_space E')]
+  [∀ x, topological_space (E' x)] [∀ x, add_comm_monoid (E' x)] [∀ x, module R (E' x)]
+  [topological_vector_bundle R F E'] :
+  continuous (total_space_mk (f *ᵖ E') x) :=
 begin
   simp only [continuous_iff_le_induced, pullback.total_space.topological_space, induced_compose,
-    pullback_total_space_embedding, prod.topological_space, le_inf_iff, induced_inf, function.comp],
-  have h := (topological_vector_bundle.total_space_mk_inducing R F E (f x)).induced,
-  simp only at h,
-  exact ⟨by {rw induced_const, exact le_top}, by {rw h, exact le_of_eq rfl}⟩,
+    induced_inf, function.comp, total_space_mk, proj, induced_const, top_inf_eq],
+  exact le_of_eq (topological_vector_bundle.total_space_mk_inducing R F E' (f x)).induced,
 end
 
 variables {R F}
@@ -910,17 +904,15 @@ variables {R F}
 lemma pullback.continuous_proj {f : B' → B} :
   continuous (bundle.proj (f *ᵖ E)) :=
 begin
-  rw [continuous_iff_le_induced, pullback.total_space.topological_space,
-    pullback_total_space_embedding, prod.topological_space, induced_inf, induced_compose],
+  rw [continuous_iff_le_induced, pullback.total_space.topological_space],
   exact inf_le_left,
 end
 
 lemma pullback.continuous_lift {f : B' → B} :
   continuous (pullback.lift E f) :=
 begin
-  rw [continuous_iff_le_induced, pullback.total_space.topological_space,
-    pullback_total_space_embedding, prod.topological_space, induced_inf],
-  simp only [induced_compose, inf_le_right],
+  rw [continuous_iff_le_induced, pullback.total_space.topological_space],
+  exact inf_le_right,
 end
 
 /-- A vector bundle trivialization can be pulled back to a trivialization on the pullback bundle. -/
