@@ -163,10 +163,12 @@ variables (F) {Z : Type*} [topological_space B] [topological_space F] {proj : Z 
 below as `trivialization F proj`) if the total space has not been given a topology, but we
 have a topology on both the fiber and the base space. Through the construction
 `topological_fiber_prebundle F proj` it will be possible to promote a
-`pretrivialization F proj` to a `trivialization F proj`. -/
+`pretrivialization F proj` to a `trivialization F proj`.
+
+Sepcifically, a pretrivialization is a local equiv between sets of the form `proj ⁻¹' base_set`
+and `base_set × F` which preserves the first coordinate. -/
 @[nolint has_inhabited_instance]
 structure topological_fiber_bundle.pretrivialization (proj : Z → B) extends local_equiv Z (B × F) :=
-(open_target   : is_open target)
 (base_set      : set B)
 (open_base_set : is_open base_set)
 (source_eq     : source = proj ⁻¹' base_set)
@@ -189,6 +191,9 @@ protected lemma eq_on : eq_on (prod.fst ∘ e) proj e.source := λ x hx, e.coe_f
 lemma mk_proj_snd (ex : x ∈ e.source) : (proj x, (e x).2) = e x := prod.ext (e.coe_fst ex).symm rfl
 lemma mk_proj_snd' (ex : proj x ∈ e.base_set) : (proj x, (e x).2) = e x :=
 prod.ext (e.coe_fst' ex).symm rfl
+
+lemma open_target : is_open e.target :=
+by { rw target_eq, exact is_open.prod e.open_base_set is_open_univ }
 
 /-- Composition of inverse and coercion from the subtype of the target. -/
 def set_symm : e.target → Z := e.target.restrict e.to_local_equiv.symm
@@ -1182,6 +1187,7 @@ def trivialization_of_mem_pretrivialization_atlas (he : e ∈ a.pretrivializatio
     exact hu1.inter (a.is_open_target_of_mem_pretrivialization_atlas_inter e e' he'),
   end,
   continuous_inv_fun := a.continuous_symm_of_mem_pretrivialization_atlas he,
+  open_target := e.open_target,
   .. e }
 
 lemma is_topological_fiber_bundle :

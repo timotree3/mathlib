@@ -71,11 +71,6 @@ def pullback (f : B' → B) (E : B → Type*) := λ x, E (f x)
 
 notation f `*ᵖ` E := pullback f E
 
-/-- Natural embedding of the total space of `f *ᵖ E` into `B' × total_space E`. -/
-def pullback_total_space_embedding (f : B' → B) (p : total_space (f *ᵖ E)) :
-  B' × (total_space E) :=
-(p.1, total_space_mk E (f p.1) p.2)
-
 /-- The base map `f : B' → B` lifts to a canonical map on the total spaces from a pullback bundle
 ``f *ᵖ E`` to the total space of `E`, by acting trivially on the fibers. -/
 def pullback.lift (f : B' → B) (p : total_space (f *ᵖ E)) :=
