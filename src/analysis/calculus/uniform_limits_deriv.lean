@@ -253,16 +253,16 @@ begin
   have hxyy' : ∥y - x∥ ≠ 0, simp [hxyy],
 
   -- Multiply and divide by the difference quotient denominator
-  have : ∥f m y - f n y - (f m x - f n x)∥ = ∥y - x∥ * (∥y - x∥⁻¹ * ∥f m y - f n y - (f m x - f n x)∥),
+  have : ∥f m y - f n y - (f m x - f n x)∥ =
+    ∥y - x∥ * (∥y - x∥⁻¹ * ∥f m y - f n y - (f m x - f n x)∥),
   { exact (mul_inv_cancel_left₀ hxyy' _).symm, },
   rw this,
 
   specialize hN2 m (ge_trans hm (by simp)) n (ge_trans hn (by simp)),
-  have : ∀ (x_1 : E), x_1 ∈ closed_ball x r → ∥ f' m x_1 - f' n x_1∥ ≤ 2⁻¹ * r⁻¹ * ε, {
-    intros y hy,
+  have : ∀ (x_1 : E), x_1 ∈ closed_ball x r → ∥ f' m x_1 - f' n x_1∥ ≤ 2⁻¹ * r⁻¹ * ε,
+  { intros y hy,
     rw ←dist_eq_norm,
-    exact (hN2 y hy).le,
-  },
+    exact (hN2 y hy).le, },
   have hxb : x ∈ closed_ball x r, simp [hrpos.le],
   have mvt := mean_value_theorem_for_differences hrR (hf m) (hf n) this hy hxb,
   specialize hN1 m (ge_trans hm (by simp)) n (ge_trans hn (by simp)),
