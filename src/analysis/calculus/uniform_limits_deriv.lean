@@ -334,8 +334,7 @@ begin
 
   -- The final (ε / 3) comes from the definition of a derivative
   specialize hf N y (calc dist y x < r : hy ... < R : hrR),
-  rw has_fderiv_at_iff_tendsto at hf,
-  rw tendsto_nhds_nhds at hf,
+  rw [has_fderiv_at_iff_tendsto, tendsto_nhds_nhds] at hf,
   specialize hf (3⁻¹ * ε) ε_over_three_pos.gt,
   rcases hf with ⟨δ', hδ', hf⟩,
 
@@ -361,48 +360,35 @@ begin
   have hx'y : x' - y ≠ 0, exact λ H, hy' (sub_eq_zero.mp H).symm,
   have hx'yy : 0 < ∥x' - y∥, simp only [hx'y, norm_pos_iff, ne.def, not_false_iff],
 
-  -- Now that this case is ruled out, we begin setting up our final outcome:
-  -- rewrite ε as 3 * (3⁻¹ * ε)
-  have : ε = (3⁻¹ * ε) + (3⁻¹ * ε) + (3⁻¹ * ε),
-  { ring, },
-  rw this,
-
   -- Our three inequalities come from `hf`, `hN1`, and `hN2`. Get them and the goal in
   -- shape for the final triangle inequality application
   specialize hN1 N (by simp) y hyc,
   rw dist_comm at hN1,
   have hN1 := (f' N y - g' y).le_of_op_norm_le hN1.le (x' - y),
-  rw ←mul_inv_le_iff' hx'yy at hN1,
-  rw mul_comm at hN1,
+  rw [←mul_inv_le_iff' hx'yy, mul_comm] at hN1,
 
   specialize hN2 N (by simp) x' hxc,
   rw [dist_eq_norm, ←smul_sub, norm_smul] at hN2,
   simp only [norm_inv, is_R_or_C.norm_coe_norm] at hN2,
 
-  rw dist_eq_norm at hf,
+  rw dist_eq_norm at hf ⊢,
   simp only [map_sub, sub_zero, norm_mul, norm_inv, norm_norm] at hf,
-
-  rw dist_eq_norm,
   simp only [algebra.id.smul_eq_mul, sub_zero, norm_mul, norm_inv, norm_norm],
 
-  -- Get into shape for triangle inequality
-  have : g x' - g y - (g' y) (x' - y) =
-    (g x' - g y - (f N x' - f N y)) +
+  -- Final calculation
+  calc  ∥x' - y∥⁻¹ * ∥g x' - g y - (g' y) (x' - y)∥ =
+    ∥x' - y∥⁻¹ * ∥(g x' - g y - (f N x' - f N y)) +
     ((f N x' - f N y) - ((f' N y) x' - (f' N y) y)) +
-    ((f' N y - g' y) (x' - y)), simp,
-  rw this,
-
-  have : ∥x' - y∥⁻¹ * ∥(g x' - g y - (f N x' - f N y)) +
-    ((f N x' - f N y) - ((f' N y) x' - (f' N y) y)) +
-    ((f' N y - g' y) (x' - y))∥ ≤
-    ∥x' - y∥⁻¹ * ∥(g x' - g y - (f N x' - f N y))∥ +
+    ((f' N y - g' y) (x' - y))∥ : by simp
+  ... ≤ ∥x' - y∥⁻¹ * ∥(g x' - g y - (f N x' - f N y))∥ +
     ∥x' - y∥⁻¹ * ∥((f N x' - f N y) - ((f' N y) x' - (f' N y) y))∥ +
-    ∥x' - y∥⁻¹ * ∥((f' N y - g' y) (x' - y))∥,
-  { rw [←mul_add (∥x' - y∥⁻¹) _ _, ←mul_add (∥x' - y∥⁻¹) _ _],
-    have : ∥x' - y∥⁻¹ ≤ ∥x' - y∥⁻¹, exact le_refl _,
-    refine mul_le_mul this norm_add_three_le (by simp) (by simp), },
-
-  exact lt_of_le_of_lt this (lt_of_lt_of_lt_of_le hN2 hf hN1),
+    ∥x' - y∥⁻¹ * ∥((f' N y - g' y) (x' - y))∥ : begin
+      rw [←mul_add (∥x' - y∥⁻¹) _ _, ←mul_add (∥x' - y∥⁻¹) _ _],
+      have : ∥x' - y∥⁻¹ ≤ ∥x' - y∥⁻¹, exact le_refl _,
+      refine mul_le_mul this norm_add_three_le (by simp) (by simp)
+    end
+  ... < 3⁻¹ * ε + 3⁻¹ * ε + 3⁻¹ * ε : lt_of_lt_of_lt_of_le hN2 hf hN1
+  ... = ε : by ring,
 end
 
 end limits_of_derivatives
