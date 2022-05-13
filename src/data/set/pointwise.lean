@@ -396,24 +396,13 @@ def singleton_monoid_hom : α →* set α := { ..singleton_mul_hom, ..singleton_
 end mul_one_class
 
 section monoid
-variables [monoid α] {s t : set α} {a : α}
+variables [monoid α] {s t : set α} {a : α} {m n : ℕ}
 
 /-- `set α` is a `monoid` under pointwise operations if `α` is. -/
 @[to_additive "`set α` is an `add_monoid` under pointwise operations if `α` is."]
 protected def monoid : monoid (set α) := { ..set.semigroup, ..set.mul_one_class }
 
 localized "attribute [instance] set.monoid set.add_monoid" in pointwise
-
-@[to_additive] lemma pow_mem_pow (ha : a ∈ s) : ∀ n : ℕ, a ^ n ∈ s ^ n
-| 0 := by { rw pow_zero, exact one_mem_one }
-| (n + 1) := by { rw pow_succ, exact mul_mem_mul ha (pow_mem_pow _) }
-
-@[to_additive] lemma pow_subset_pow (hst : s ⊆ t) : ∀ n : ℕ, s ^ n ⊆ t ^ n
-| 0 := by { rw pow_zero, exact subset.rfl }
-| (n + 1) := by { rw pow_succ, exact mul_subset_mul hst (pow_subset_pow _) }
-
-@[to_additive] lemma empty_pow (n : ℕ) (hn : n ≠ 0) : (∅ : set α) ^ n = ∅ :=
-by rw [← tsub_add_cancel_of_le (nat.succ_le_of_lt $ nat.pos_of_ne_zero hn), pow_succ, empty_mul]
 
 @[to_additive]
 instance decidable_mem_mul [fintype α] [decidable_eq α] [decidable_pred (∈ s)]
@@ -430,11 +419,41 @@ begin
   { letI := ih, rw pow_succ, apply_instance }
 end
 
+@[to_additive] lemma pow_mem_pow (ha : a ∈ s) : ∀ n : ℕ, a ^ n ∈ s ^ n
+| 0 := by { rw pow_zero, exact one_mem_one }
+| (n + 1) := by { rw pow_succ, exact mul_mem_mul ha (pow_mem_pow _) }
+
+@[to_additive] lemma pow_subset_pow (hst : s ⊆ t) : ∀ n : ℕ, s ^ n ⊆ t ^ n
+| 0 := by { rw pow_zero, exact subset.rfl }
+| (n + 1) := by { rw pow_succ, exact mul_subset_mul hst (pow_subset_pow _) }
+
+@[to_additive] lemma pow_subset_pow_of_one_mem (hs : (1 : α) ∈ s) : m ≤ n → s ^ m ⊆ s ^ n :=
+begin
+  refine nat.le_induction _ (λ n h ih, _) _,
+  { exact subset.rfl },
+  { rw pow_succ,
+    exact ih.trans (subset_mul_right _ hs) }
+end
+
+@[simp, to_additive] lemma empty_pow {n : ℕ} (hn : n ≠ 0) : (∅ : set α) ^ n = ∅ :=
+by rw [← tsub_add_cancel_of_le (nat.succ_le_of_lt $ nat.pos_of_ne_zero hn), pow_succ, empty_mul]
+
 @[simp, to_additive] lemma univ_mul_univ : (univ : set α) * univ = univ :=
 begin
   have : ∀ x, ∃ a b : α, a * b = x := λ x, ⟨x, 1, mul_one x⟩,
   simpa only [mem_mul, eq_univ_iff_forall, mem_univ, true_and]
 end
+
+--TODO: `to_additive` trips up on the `1 : ℕ` used in the pattern-matching.
+@[simp] lemma nsmul_univ {α : Type*} [add_monoid α] : ∀ {n : ℕ}, n ≠ 0 → n • (univ : set α) = univ
+| 0 := λ h, (h rfl).elim
+| 1 := λ _, one_nsmul _
+| (n + 2) := λ _, by { rw [succ_nsmul, nsmul_univ n.succ_ne_zero, univ_add_univ] }
+
+@[simp, to_additive nsmul_univ] lemma univ_pow : ∀ {n : ℕ}, n ≠ 0 → (univ : set α) ^ n = univ
+| 0 := λ h, (h rfl).elim
+| 1 := λ _, pow_one _
+| (n + 2) := λ _, by { rw [pow_succ, univ_pow n.succ_ne_zero, univ_mul_univ] }
 
 @[to_additive] protected lemma _root_.is_unit.set : is_unit a → is_unit ({a} : set α) :=
 is_unit.map (singleton_monoid_hom : α →* set α)
@@ -521,10 +540,35 @@ protected def division_comm_monoid [division_comm_monoid α] : division_comm_mon
 localized "attribute [instance] set.division_monoid set.subtraction_monoid set.division_comm_monoid
   set.subtraction_comm_monoid" in pointwise
 
+section mul_zero_class
+variables [mul_zero_class α] {s t : set α}
+
+/-! Note that `set` is not a `mul_zero_class` because `0 * ∅ ≠ 0`. -/
+
+lemma mul_zero_subset (s : set α) : s * 0 ⊆ 0 := by simp [subset_def, mem_mul]
+lemma zero_mul_subset (s : set α) : 0 * s ⊆ 0 := by simp [subset_def, mem_mul]
+
+lemma nonempty.mul_zero (hs : s.nonempty) : s * 0 = 0 :=
+s.mul_zero_subset.antisymm $ by simpa [mem_mul] using hs
+
+lemma nonempty.zero_mul (hs : s.nonempty) : 0 * s = 0 :=
+s.zero_mul_subset.antisymm $ by simpa [mem_mul] using hs
+
+end mul_zero_class
+
 section group
 variables [group α] {s t : set α} {a b : α}
 
 /-! Note that `set` is not a `group` because `s / s ≠ 1` in general. -/
+
+@[simp, to_additive] lemma one_mem_div_iff : (1 : α) ∈ s / t ↔ ¬ disjoint s t :=
+by simp [not_disjoint_iff_nonempty_inter, mem_div, div_eq_one, set.nonempty]
+
+@[to_additive] lemma one_not_mem_div_iff : (1 : α) ∉ s / t ↔ disjoint s t :=
+one_mem_div_iff.not_left
+
+@[to_additive] lemma nonempty.one_mem_div (h : s.nonempty) : (1 : α) ∈ s / s :=
+let ⟨a, ha⟩ := h in mem_div.2 ⟨a, a, ha, ha, div_self' _⟩
 
 @[to_additive] lemma is_unit_singleton (a : α) : is_unit ({a} : set α) := (group.is_unit a).set
 
@@ -632,14 +676,7 @@ end
 @[to_additive]
 lemma finset_prod_singleton {M ι : Type*} [comm_monoid M] (s : finset ι) (I : ι → M) :
   ∏ (i : ι) in s, ({I i} : set M) = {∏ (i : ι) in s, I i} :=
-begin
-  letI := classical.dec_eq ι,
-  refine finset.induction_on s _ _,
-  { simpa },
-  { intros _ _ H ih,
-    rw [finset.prod_insert H, finset.prod_insert H, ih],
-    simp }
-end
+(map_prod (singleton_monoid_hom : M →* set M) _ _).symm
 
 /-! TODO: define `decidable_mem_finset_prod` and `decidable_mem_finset_sum`. -/
 
@@ -1303,7 +1340,7 @@ begin
   have hG : 0 < fintype.card G := fintype.card_pos_iff.mpr ⟨1⟩,
   by_cases hS : S = ∅,
   { refine λ k hk, fintype.card_congr _,
-    rw [hS, empty_pow _ (ne_of_gt (lt_of_lt_of_le hG hk)), empty_pow _ (ne_of_gt hG)] },
+    rw [hS, empty_pow (ne_of_gt (lt_of_lt_of_le hG hk)), empty_pow (ne_of_gt hG)] },
   obtain ⟨a, ha⟩ := set.ne_empty_iff_nonempty.mp hS,
   classical,
   have key : ∀ a (s t : set G), (∀ b : G, b ∈ s → a * b ∈ t) → fintype.card s ≤ fintype.card t,
