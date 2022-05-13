@@ -1112,6 +1112,9 @@ by rw [← nnreal.coe_eq_zero, coe_nnnorm, norm_eq_zero]
 
 lemma nnnorm_ne_zero_iff {g : E} : ∥g∥₊ ≠ 0 ↔ g ≠ 0 := not_congr nnnorm_eq_zero
 
+lemma nnnorm_pos_iff {g : E} : 0 < ∥g∥₊ ↔ g ≠ 0 :=
+by rw [pos_iff_ne_zero, nnnorm_ne_zero_iff]
+
 /-- An injective group homomorphism from an `add_comm_group` to a `normed_group` induces a
 `normed_group` structure on the domain.
 
