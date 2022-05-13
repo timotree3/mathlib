@@ -524,6 +524,28 @@ begin
   exact h₂ t (h₁ t ht)
 end
 
+lemma continuous_on_inf_rng {α β : Type*} {t₁ : topological_space α} {t₂ t₃ : topological_space β}
+  {s : set α} {f : α → β} (h : @continuous_on α β t₁ t₂ f s) (h' : @continuous_on α β t₁ t₃ f s) :
+  @continuous_on α β t₁ (t₂ ⊓ t₃) f s :=
+begin
+  rw continuous_on_iff_continuous_restrict at h h' ⊢,
+  exact continuous_inf_rng h h',
+end
+
+@[simp] lemma continuous_on_inf_rng_iff {α β : Type*} {t₁ : topological_space α}
+  {t₂ t₃ : topological_space β} {s : set α} {f : α → β} :
+  @continuous_on α β t₁ (t₂ ⊓ t₃) f s ↔
+    @continuous_on α β t₁ t₂ f s ∧ @continuous_on α β t₁ t₃ f s  :=
+⟨λ h, ⟨h.mono_rng inf_le_left, h.mono_rng inf_le_right⟩, λ h, continuous_on_inf_rng h.1 h.2⟩
+
+lemma continuous_on_induced_rng {α β γ : Type*} [tα : topological_space α]
+  [tγ : topological_space γ] {s : set α} {f : α → β} {g : β → γ} (h : continuous_on (g ∘ f) s) :
+  @continuous_on α β tα (topological_space.induced g tγ) f s :=
+begin
+  rw continuous_on_iff_continuous_restrict at h ⊢,
+  exact continuous_induced_rng h,
+end
+
 theorem continuous_on_iff_is_closed {f : α → β} {s : set α} :
   continuous_on f s ↔ ∀ t : set β, is_closed t → ∃ u, is_closed u ∧ f ⁻¹' t ∩ s = u ∩ s :=
 have ∀ t, is_closed (s.restrict f ⁻¹' t) ↔ ∃ (u : set α), is_closed u ∧ f ⁻¹' t ∩ s = u ∩ s,
